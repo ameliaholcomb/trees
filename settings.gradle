@@ -1,2 +1,2 @@
-include ':app'
+include ':app', ':camerakit-1.0.2'
 rootProject.name='Trees'
