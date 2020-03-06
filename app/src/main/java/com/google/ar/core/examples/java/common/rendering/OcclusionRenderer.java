@@ -95,29 +95,39 @@ public class OcclusionRenderer {
     return output;
   }
 
-  public void initCamera(Context context, String cameraId, int index) {
-    boolean ok = false;
-    try {
-      int current = 0;
-      CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-      CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-      for (Size s : characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.DEPTH16)) {
-        depthWidth = s.getWidth();
-        depthHeight = s.getHeight();
-        ok = true;
-        if (current == index)
-          break;
-        else;
-          current++;
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    if (!ok) {
-      Log.e("ARCoreApp", "Depth sensor not found!");
-      System.exit(1);
-    }
-  }
+  /**
+   *
+   * This method opens the camera at the given index. Expects depth camera.
+   */
+//  public void initCamera(Context context, String cameraId, int index) {
+//    boolean ok = false;
+//    try {
+//      int current = 0;
+//      CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+//      CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+//
+//      // Loop through every camera, taking their characteristics, until we find the one we are looking
+//      // for. At this point, record the depthWidth and depthHeight.
+//      for (Size s : characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.DEPTH16)) {
+//        depthWidth = s.getWidth();
+//        depthHeight = s.getHeight();
+//        ok = true;
+//        if (current == index)
+//          break;
+//        else;
+//          current++;
+//      }
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//    }
+//    if (!ok) {
+//      Log.e("ARCoreApp", "Depth sensor not found!");
+//      System.exit(1);
+//    }
+//    Log.i("Connor width", Integer.toString(depthWidth));
+//    Log.i("Connor height", Integer.toString(depthHeight));
+//
+//  }
 
   public synchronized void update(float[] data) {
     numPoints = 0;
@@ -173,5 +183,13 @@ public class OcclusionRenderer {
 
   public int getDepthHeight() {
     return depthHeight;
+  }
+
+  public void setDepthWidth(int w) {
+    depthWidth = w;
+  }
+
+  public void setDepthHeight(int h) {
+    depthHeight = h;
   }
 }

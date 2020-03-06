@@ -56,6 +56,9 @@ import com.google.ar.core.examples.java.common.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.common.rendering.OcclusionRenderer;
 import com.google.ar.core.exceptions.UnavailableException;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -67,11 +70,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+
 public class SharedCameraActivity extends Activity
     implements GLSurfaceView.Renderer,
         ImageReader.OnImageAvailableListener,
         SurfaceTexture.OnFrameAvailableListener {
   private static final String TAG = SharedCameraActivity.class.getSimpleName();
+
+  // Parameters for the ToF camera
+  private static final int TOF_ID = 4;
+  private static final int TOF_HEIGHT = 180;
+  private static final int TOF_WIDTH = 240;
+
+  // Whether to save the next available image to a file
+  private boolean captureImage = false;
 
   // Whether the surface texture has been attached to the GL context.
   boolean isGlAttached;
@@ -395,9 +407,11 @@ public class SharedCameraActivity extends Activity
   }
 
   // Perform various checks, then open camera device and create CPU image reader.
+
+  // TODO: can we just open both cameras?
   private void openCamera(int index) {
 
-    occlusionRenderer.initCamera(this, cameraId, index);
+//    occlusionRenderer.initCamera(this, cameraId, index);
 
     // Use the currently configured CPU image size.
     cpuImageReader =
@@ -501,6 +515,12 @@ public class SharedCameraActivity extends Activity
       return;
     }
 
+    // Buffers for storing TOF output
+    ArrayList<Integer> xBuffer = new ArrayList<>();
+    ArrayList<Integer> yBuffer = new ArrayList<>();
+    ArrayList<Integer> dBuffer = new ArrayList<>();
+    ArrayList<Float> percentageBuffer = new ArrayList<>();
+
     Image.Plane plane = image.getPlanes()[0];
     ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
     ArrayList<Short> pixel = new ArrayList<Short>();
@@ -513,17 +533,29 @@ public class SharedCameraActivity extends Activity
     float[] output = new float[image.getWidth() * image.getHeight()];
     for (int y = 0; y < image.getHeight(); y++) {
       for (int x = 0; x < image.getWidth(); x++) {
+        // Parse the data. Format is [depth|confidence]
         int depthSample = pixel.get((int)(y / 2) * stride + x);
         int depthRange = (depthSample & 0x1FFF);
         int depthConfidence = ((depthSample >> 13) & 0x7);
         float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
         output[offset + x] = 0.0001f * depthRange;
+
+        // Store data in buffer
+        xBuffer.add(x);
+        yBuffer.add(y);
+        dBuffer.add(depthSample);
+        percentageBuffer.add(depthPercentage);
       }
       offset += image.getWidth();
     }
     image.close();
 
     occlusionRenderer.update(output);
+
+    if (captureImage == true) {
+      saveToFile(xBuffer, yBuffer, dBuffer, percentageBuffer);
+      captureImage = false;
+    }
   }
 
   // Android permission request callback.
@@ -591,6 +623,7 @@ public class SharedCameraActivity extends Activity
       try {
         // Create ARCore session that supports camera sharing.
         sharedSession = new Session(this, EnumSet.of(Session.Feature.SHARED_CAMERA));
+        Log.i("Connor", Session.Feature.SHARED_CAMERA.toString());
       } catch (UnavailableException e) {
         Log.e(TAG, "Failed to create ARCore session that supports camera sharing", e);
         return;
@@ -608,6 +641,8 @@ public class SharedCameraActivity extends Activity
     // Store the ID of the camera used by ARCore.
     cameraId = sharedSession.getCameraConfig().getCameraId();
 
+    Log.i("Connor", cameraId);
+
 
     new Thread(new Runnable() {
       @Override
@@ -622,18 +657,32 @@ public class SharedCameraActivity extends Activity
           public void run() {
 
             AlertDialog.Builder builder = new AlertDialog.Builder(SharedCameraActivity.this);
+
+            // Finds the resolutions for the ToF camera.
             String[] res = occlusionRenderer.getResolutions(SharedCameraActivity.this, cameraId).toArray(new String[0]);
+
+            Log.i("Connor", Arrays.toString(res));
+
 
             if (res.length > 0)
             {
-              builder.setTitle("Choose ToF resolution");
-              builder.setItems(res, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                  openCamera(which);
-                  initialized = true;
-                }
-              });
+//              builder.setTitle("Choose ToF resolution");
+//              builder.setItems(res, new DialogInterface.OnClickListener() {
+//                @Override
+//                public void onClick(DialogInterface dialog, int which) {
+//                  openCamera(which);
+//                  initialized = true;
+//                }
+//              });
+              // TODO: based on used cameras
+              occlusionRenderer.setDepthWidth(TOF_WIDTH);
+              occlusionRenderer.setDepthHeight(TOF_HEIGHT);
+
+              // open the camera
+              openCamera(TOF_ID);
+
+              // Indicate that the camera is ready
+              initialized = true;
             } else {
               builder.setTitle("Camera2 API: ToF not found");
               builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -678,6 +727,58 @@ public class SharedCameraActivity extends Activity
     } catch (Throwable t) {
       // Avoid crashing the application due to unhandled exceptions.
       Log.e(TAG, "Exception on the OpenGL thread", t);
+    }
+  }
+
+
+  /**
+   * Capture the image
+   */
+
+  String fname = "capture";
+  int num_captures = 0;
+
+  public void onCaptureImage(View view) {
+    Log.i("Connor", "We broke it!");
+    captureImage = true;
+  }
+
+  public void saveToFile(ArrayList<Integer> xBuffer, ArrayList<Integer> yBuffer,
+                         ArrayList<Integer> dBuffer, ArrayList<Float> percentageBuffer) {
+
+    // Write the TOF data currently in buffers to an output file.
+    Log.i("Connor", "Writing to the file");
+    Context context = getApplicationContext();
+    Log.i("Connor", "Done writing to the file");
+
+    FileWriter os = null;
+    try {
+      File file = new File(context.getFilesDir(), fname+(num_captures++));
+      os = new FileWriter(file);
+
+      StringBuilder str = new StringBuilder();
+
+      for (int i = 0; i < dBuffer.size(); i++) {
+        str.append(xBuffer.get(i));
+        str.append(',');
+        str.append(yBuffer.get(i));
+        str.append(',');
+        str.append(dBuffer.get(i));
+        str.append(',');
+        str.append(percentageBuffer.get(i));
+        str.append('\n');
+      }
+
+      os.write(str.toString());
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        os.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
