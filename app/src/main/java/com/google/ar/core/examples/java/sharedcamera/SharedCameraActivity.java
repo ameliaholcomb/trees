@@ -51,6 +51,7 @@ import com.google.ar.core.Config;
 import com.google.ar.core.Session;
 import com.google.ar.core.SharedCamera;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
+import com.google.ar.core.examples.java.common.helpers.StoragePermissionHelper;
 import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
 import com.google.ar.core.examples.java.common.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.common.rendering.OcclusionRenderer;
@@ -731,56 +732,62 @@ public class SharedCameraActivity extends Activity
   }
 
 
-  /**
-   * Capture the image
-   */
 
-  String fname = "capture";
-  int num_captures = 0;
 
+  // onCaptureImage sets captureImage to true, so that next time onImageAvailable is called,
+  // the image will be saved to a file.
   public void onCaptureImage(View view) {
-    Log.i("Connor", "We broke it!");
+
+    // Verify STORAGE_PERMISSION has been granted.
+    if (!StoragePermissionHelper.hasStoragePermission(this)) {
+      StoragePermissionHelper.requestStoragePermission(this);
+      return;
+    }
+
     captureImage = true;
   }
 
+  int num_captures = 0;
   public void saveToFile(ArrayList<Integer> xBuffer, ArrayList<Integer> yBuffer,
                          ArrayList<Integer> dBuffer, ArrayList<Float> percentageBuffer) {
 
     // Write the TOF data currently in buffers to an output file.
     Log.i("Connor", "Writing to the file");
     Context context = getApplicationContext();
-    Log.i("Connor", "Done writing to the file");
 
-    FileWriter os = null;
     try {
-      File file = new File(context.getFilesDir(), fname+(num_captures++));
-      os = new FileWriter(file);
-
-      StringBuilder str = new StringBuilder();
-
-      for (int i = 0; i < dBuffer.size(); i++) {
-        str.append(xBuffer.get(i));
-        str.append(',');
-        str.append(yBuffer.get(i));
-        str.append(',');
-        str.append(dBuffer.get(i));
-        str.append(',');
-        str.append(percentageBuffer.get(i));
-        str.append('\n');
-      }
-
-      os.write(str.toString());
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    } finally {
+      FileWriter writer = null;
+      Log.i("Connor", context.getFilesDir().getAbsolutePath());
+      File file = new File(context.getFilesDir(), "/Capture_" + (num_captures++));
+      FileOutputStream fos = new FileOutputStream(file);
       try {
-        os.close();
+        writer = new FileWriter(fos.getFD());
+        StringBuilder str = new StringBuilder();
+
+        for (int i = 0; i < dBuffer.size(); i++) {
+          str.append(xBuffer.get(i));
+          str.append(',');
+          str.append(yBuffer.get(i));
+          str.append(',');
+          str.append(dBuffer.get(i));
+          str.append(',');
+          str.append(percentageBuffer.get(i));
+          str.append('\n');
+        }
+        writer.write(str.toString());
+        Log.i("Connor", "Successfully wrote the file");
       } catch (IOException e) {
         e.printStackTrace();
+      } finally {
+        writer.close();
       }
+      fos.getFD().sync();
+      fos.close();
+    } catch (IOException e) {
+          e.printStackTrace();
     }
   }
+
 
   // Draw frame when in non-AR mode. Called on the GL thread.
   public void onDrawFrameCamera2() {
