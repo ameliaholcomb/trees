@@ -44,6 +44,7 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.ar.core.ArCoreApk;
@@ -146,6 +147,9 @@ public class SharedCameraActivity extends Activity
   // Prevent any changes to camera capture session after CameraManager.openCamera() is called, but
   // before camera device becomes active.
   private boolean captureSessionChangesPossible = true;
+
+  // App context, to be assigned in onCreate
+  private Context context;
 
   // A check mechanism to ensure that the camera closed properly so that the app can safely exit.
   private final ConditionVariable safeToExitApp = new ConditionVariable();
@@ -289,6 +293,8 @@ public class SharedCameraActivity extends Activity
 
     // Helpers, see hello_ar_java sample to learn more.
     displayRotationHelper = new DisplayRotationHelper(this);
+
+    context = getApplicationContext();
   }
 
   private synchronized void waitUntilCameraCaptureSesssionIsActive() {
@@ -747,18 +753,60 @@ public class SharedCameraActivity extends Activity
     captureImage = true;
   }
 
-  int num_captures = 0;
+
+  // Variables which record state.
+  // TODO: num_captures should be persistent between runs of the app
+  private static int num_captures = 0;
+  private static int currentSample = 1;
+  private static final String SAMPLE_NUM_NAME = "sampleNum";
+
+  // Plus button to change the sample being read
+  public void onSamplePlus(View view) {
+
+    // Get the text object which displays the current sample
+    int sampleNumId = getResources().getIdentifier(SAMPLE_NUM_NAME, "id", context.getPackageName());
+    EditText sampleNum = (EditText)findViewById(sampleNumId);
+
+    // Don't allow the sample number to overflow
+    if (currentSample + 1 == Integer.MAX_VALUE) {
+      return;
+    }
+    else {
+      currentSample++;
+    }
+
+    sampleNum.setText(Integer.toString(currentSample));
+  }
+
+  // Minus button for the sample being read
+  public void onSampleMinus(View view) {
+
+    // Get the text object which displays the current sample
+    int sampleNumId = getResources().getIdentifier(SAMPLE_NUM_NAME, "id", context.getPackageName());
+    EditText sampleNum = (EditText)findViewById(sampleNumId);
+
+    // Don't allow the sample number get less than 1
+    if (currentSample - 1 == 0) {
+      return;
+    }
+    else {
+      currentSample--;
+    }
+
+    sampleNum.setText(Integer.toString(currentSample));
+  }
+
   public void saveToFile(ArrayList<Integer> xBuffer, ArrayList<Integer> yBuffer,
                          ArrayList<Integer> dBuffer, ArrayList<Float> percentageBuffer) {
 
     // Write the TOF data currently in buffers to an output file.
     Log.i("Connor", "Writing to the file");
-    Context context = getApplicationContext();
 
     try {
       FileWriter writer = null;
       Log.i("Connor", context.getFilesDir().getAbsolutePath());
-      File file = new File(context.getFilesDir(), "/Capture_" + (num_captures++));
+      File file = new File(context.getFilesDir(), "/Capture_Sample_" + currentSample + "_"
+              + (num_captures++));
       FileOutputStream fos = new FileOutputStream(file);
       try {
         writer = new FileWriter(fos.getFD());

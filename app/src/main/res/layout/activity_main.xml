@@ -25,12 +25,49 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top" />
 
-    <Button
-        android:id="@+id/cameraButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="onCaptureImage"
-        android:text=" Shoot" />
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/sampleNum"
+            android:layout_width="63dp"
+            android:layout_height="70dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerHorizontal="false"
+            android:layout_marginRight="57dp"
+            android:layout_toLeftOf="@id/plusButton"
+            android:ems="14"
+            android:fontFamily="monospace"
+            android:includeFontPadding="false"
+            android:inputType="number"
+            android:text="1" />
+
+        <Button
+            android:id="@+id/plusButton"
+            android:layout_width="55dp"
+            android:layout_height="75dp"
+            android:layout_alignParentRight="true"
+            android:onClick="onSamplePlus"
+            android:text="+" />
+
+        <Button
+            android:id="@+id/minusButton"
+            android:layout_width="55dp"
+            android:layout_height="75dp"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="120dp"
+            android:onClick="onSampleMinus"
+            android:text="-" />
+
+        <Button
+            android:id="@+id/cameraButton"
+            android:layout_width="150dp"
+            android:layout_height="75dp"
+            android:onClick="onCaptureImage"
+            android:text=" Shoot" />
+
+    </RelativeLayout>
 
 
 </RelativeLayout>
