@@ -29,6 +29,23 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <Button
+            android:id="@+id/deleteButton"
+            android:layout_width="75dp"
+            android:layout_height="57dp"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="158dp"
+            android:layout_marginRight="4dp"
+            android:layout_toLeftOf="@id/minusButton"
+            android:enabled="true"
+            android:onClick="onDeleteData"
+            android:text="Delete Data!"
+            android:textColor="#BC1E1E"
+            android:textColorHighlight="#DF4141"
+            android:textColorHint="#951616"
+            android:textColorLink="#E11D1D"
+            android:visibility="invisible" />
+
         <EditText
             android:id="@+id/sampleNum"
             android:layout_width="63dp"
@@ -38,6 +55,7 @@
             android:layout_marginRight="57dp"
             android:layout_toLeftOf="@id/plusButton"
             android:ems="14"
+            android:enabled="false"
             android:fontFamily="monospace"
             android:includeFontPadding="false"
             android:inputType="number"
@@ -65,7 +83,7 @@
             android:layout_width="150dp"
             android:layout_height="75dp"
             android:onClick="onCaptureImage"
-            android:text=" Shoot" />
+            android:text="Shoot" />
 
     </RelativeLayout>
 
