@@ -34,7 +34,6 @@ typealias DualCameraOutputs =
 
 class CameraActivity : AppCompatActivity() {
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
@@ -88,16 +87,22 @@ class CameraActivity : AppCompatActivity() {
 
         // A bit of logging about this camera's output formats/configuration:
         var map = manager.getCameraCharacteristics(physicalNormId).get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        Log.i(TAG, "Camera $physicalNormId")
         Log.i(TAG, "map: " + map?.toString())
         Log.i(TAG, "map: " + map?.outputFormats?.contentToString())
 
         map = manager.getCameraCharacteristics(logicalCamera.second).get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        Log.i(TAG, "Camera " + logicalCamera.second)
         Log.i(TAG, "map2: " + map?.toString())
         Log.i(TAG, "map2: " + map?.outputFormats?.contentToString())
+        Log.i(TAG, "map2: " + map?.getOutputSizes(ImageFormat.DEPTH16)?.contentToString())
 
         map = manager.getCameraCharacteristics(physicalTofId).get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        Log.i(TAG, "Camera $physicalTofId")
         Log.i(TAG, "map3: " + map?.toString())
         Log.i(TAG, "map3: " + map?.outputFormats?.contentToString())
+        Log.i(TAG, "map3: " + map?.getOutputSizes(ImageFormat.DEPTH16)?.contentToString())
+
 
         return DualCamera(logicalId = logicalCamera.second,
             physicalNormId = physicalNormId, physicalTofId = physicalTofId)
@@ -171,9 +176,9 @@ class CameraActivity : AppCompatActivity() {
 
     fun startDualCameraCapture() {
         val cameraManager : CameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        // Need new height, width, and image format
+        // TODO: Must make sure to close the readers!
         val imReaderNorm: ImageReader = ImageReader.newInstance(
-            NORM_WIDTH, NORM_HEIGHT, ImageFormat.JPEG, 2)
+            NORM_WIDTH, NORM_HEIGHT, ImageFormat.YUV_420_888, 2)
         val imReaderToF: ImageReader = ImageReader.newInstance(
             TOF_WIDTH, TOF_HEIGHT, ImageFormat.DEPTH16, 2)
         val dualCamera: DualCamera = findDualCamera(cameraManager)
@@ -203,7 +208,8 @@ class onImageAvailableListener : ImageReader.OnImageAvailableListener {
 
     override fun onImageAvailable(reader: ImageReader) {
         Log.i(TAG, "Got an image")
-
+        val image = reader.acquireLatestImage()
+        image.close()
 
     }
 }
