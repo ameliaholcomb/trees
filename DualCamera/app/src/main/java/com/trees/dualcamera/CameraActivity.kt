@@ -61,7 +61,7 @@ class CameraActivity : AppCompatActivity() {
         }
 
     }
-
+    // second fun
     private fun findDualCamera(manager: CameraManager): DualCamera {
         // Find a logical camera with the appropriate capabilities
         val logicalCamera = manager.cameraIdList.map {
@@ -79,7 +79,9 @@ class CameraActivity : AppCompatActivity() {
         // Find an RGB and ToF physical camera within this logical camera
         // HuaWei does not appropriately identify the ToF camera, but through experience we happen to
         // know that it is camera #4. This would change with another phone.
-        val physicalTofId = "4"
+//        val physicalTofId = "4"
+        val physicalTofId = "3"
+
 
         // For now we arbitrarily choose the first physical RGB camera within this logical camera
         // that meets our requirements.
@@ -97,13 +99,15 @@ class CameraActivity : AppCompatActivity() {
         Log.i(TAG, "map2: " + map?.outputFormats?.contentToString())
         Log.i(TAG, "map2: " + map?.getOutputSizes(ImageFormat.DEPTH16)?.contentToString())
 
+        // TODO: Output sizes are null
+        //       Double check that camera 4 is used in the other app
         map = manager.getCameraCharacteristics(physicalTofId).get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
         Log.i(TAG, "Camera $physicalTofId")
         Log.i(TAG, "map3: " + map?.toString())
         Log.i(TAG, "map3: " + map?.outputFormats?.contentToString())
         Log.i(TAG, "map3: " + map?.getOutputSizes(ImageFormat.DEPTH16)?.contentToString())
 
-
+        // Custom struct
         return DualCamera(logicalId = logicalCamera.second,
             physicalNormId = physicalNormId, physicalTofId = physicalTofId)
     }
@@ -135,19 +139,20 @@ class CameraActivity : AppCompatActivity() {
             }
         })
     }
-
+    // third fun
     fun createDualCameraSession(cameraManager: CameraManager,
                                 dualCamera: DualCamera,
                                 targets: DualCameraOutputs,
                                 executor: Executor = AsyncTask.SERIAL_EXECUTOR,
                                 callback: (CameraCaptureSession) -> Unit) {
 
-//        Log.i(TAG, "Creating dual camera sesh")
+        Log.i(TAG, "Creating dual camera sesh")
 //        val b = SurfaceUtils.getSurfaceFormat(targets.third!!.first())
-//        val a = OutputConfiguration(targets.third!!.first())
+        val a = OutputConfiguration(targets.third!!.first())
         // Create 3 sets of output configurations: one for the logical camera, and
         // one for each of the physical cameras.
         val outputConfigsLogical = targets.first?.map { OutputConfiguration(it) }
+
         val outputConfigsPhysicalNorm = targets.second?.map {
             OutputConfiguration(it).apply { setPhysicalCameraId(dualCamera.physicalNormId) } }
         val outputConfigsPhysicalTof = targets.third?.map {
@@ -174,11 +179,13 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
+    // first fun
     fun startDualCameraCapture() {
         val cameraManager : CameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         // TODO: Must make sure to close the readers!
         val imReaderNorm: ImageReader = ImageReader.newInstance(
             NORM_WIDTH, NORM_HEIGHT, ImageFormat.YUV_420_888, 2)
+        // TODO: Depth format not prop correctly
         val imReaderToF: ImageReader = ImageReader.newInstance(
             TOF_WIDTH, TOF_HEIGHT, ImageFormat.DEPTH16, 2)
         val dualCamera: DualCamera = findDualCamera(cameraManager)

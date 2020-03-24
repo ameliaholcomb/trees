@@ -35,11 +35,10 @@
       android:usesCleartextTraffic="false"
       tools:ignore="GoogleAppIndexingWarning">
 
-
     <activity android:name=".SharedCameraActivity"
         android:configChanges="orientation|screenSize"
-        android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"
         android:launchMode="singleTask"
+        android:theme="@style/AppTheme"
         android:screenOrientation="landscape"
         android:exported = "true"
         android:resizeableActivity="false">
@@ -48,6 +47,18 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+<!--    <activity android:name=".SharedCameraActivity"-->
+<!--        android:configChanges="orientation|screenSize"-->
+<!--        android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"-->
+<!--        android:launchMode="singleTask"-->
+<!--        android:screenOrientation="portrait"-->
+<!--        android:exported = "true"-->
+<!--        android:resizeableActivity="false">-->
+<!--      <intent-filter>-->
+<!--        <action android:name="android.intent.action.MAIN"/>-->
+<!--        <category android:name="android.intent.category.LAUNCHER"/>-->
+<!--      </intent-filter>-->
+<!--    </activity>-->
     <!-- This tag indicates that this application requires ARCore.  This results in the Google Play
          Store downloading and installing ARCore along with the application. -->
     <meta-data android:name="com.google.ar.core" android:value="required" />

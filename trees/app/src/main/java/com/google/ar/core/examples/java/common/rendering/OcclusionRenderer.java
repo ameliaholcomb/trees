@@ -86,7 +86,7 @@ public class OcclusionRenderer {
     try {
       CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
       CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-      for (Size s : characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.DEPTH16)) {
+      for (Size s : characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG)) {
         output.add(s.getWidth() + "x" + s.getHeight());
       }
     } catch (Exception e) {

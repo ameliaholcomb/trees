@@ -57,7 +57,6 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Config;
-import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 import com.google.ar.core.SharedCamera;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
@@ -66,12 +65,9 @@ import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
 import com.google.ar.core.examples.java.common.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.common.rendering.OcclusionRenderer;
 import com.google.ar.core.exceptions.UnavailableException;
-import com.google.ar.core.exceptions.CameraNotAvailableException;
-import com.google.ar.core.Camera;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ShortBuffer;
@@ -85,7 +81,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 
-public class SharedCameraActivity extends Activity
+public class SharedCameraActivity extends AppCompatActivity
         implements GLSurfaceView.Renderer,
         ImageReader.OnImageAvailableListener,
         SurfaceTexture.OnFrameAvailableListener {
@@ -179,9 +175,13 @@ public class SharedCameraActivity extends Activity
     private float[] position;
     private float[] velocity;
     private float[] acceleration;
-    float lastMeasure;
+    private boolean firstPosition = true;
+    private long lastMeasure;
+    private int accSign[];
+    private int prevSign[];
+    private int root[];
 
-    // Conversion factor NS to S
+//     Conversion factor NS to S
     static final float NS2S = 1.0f / 1000000000.0f;
 
     SensorEventListener eventListener = new SensorEventListener() {
@@ -191,48 +191,94 @@ public class SharedCameraActivity extends Activity
         public void onSensorChanged(SensorEvent event) {
             if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
                 // Update the position of the phone from the current.
-                updatePositionFromLinearAccelaration(event);
+                updatePositionFromLinearAcceleration(event);
             } else if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
                 // Update the rotation of the phone from the current.
                 updateRotationFromRotationVector(event);
-
+            } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                updatePositionFromLinearAcceleration(event);
             }
         }
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+            // TODO: deal with any accuracy changes in the sensor.
         }
     };
 
-    private void updatePositionFromLinearAccelaration(SensorEvent event) {
+    private void updatePositionFromLinearAcceleration(SensorEvent event) {
         float[] acc = event.values;
 
-        // Compute the time increment
-        float dt = (event.timestamp - lastMeasure) * NS2S;
-
-        // Update the velocity in each component
+        // Round the accelerations to 1 decimal places (qualitatively chosen to reduce noise)
         for (int i = 0; i < 3; i++) {
-            velocity[i] += ((acc[i] + acceleration[i])/2)*dt;
-            position[i] += velocity[i]*dt;
+            acc[i] = Math.round(acc[i] * 10.0f) / 10.0f;
+            accSign[i] = (int) Math.signum(acc[i]);
+        }
+
+        // Check for a sign change
+        for (int i = 0; i < 3; i++) {
+            if (accSign[i] == -1 && prevSign[i] == 1) {
+                root[i] = -1;
+            } else if (accSign[i] == 1 && prevSign[i] == -1) {
+                root[i] = 1;
+            }
+        }
+
+        // If there has been a sign change from positive to negative, and we are at a point with 0 acceleration, set
+        // velocity component to 0.
+        for (int i = 0; i < 3; i++) {
+            if (acc[i] == 0) {
+                velocity[i] = 0.0f;
+            }
+        }
+
+        // Compute the time increment
+//        Log.i("Connor", "lastMeasure = " + lastMeasure);
+//        Log.i("Connor", "timestamp = " + event.timestamp);
+//        Log.i("Connor", "Initial position " + Arrays.toString(position));
+        Log.i("Connor", "acceleration = " + Arrays.toString(acc));
+
+
+        // If this is not the first position measurement
+        if (!firstPosition) {
+
+            float dt = (event.timestamp - lastMeasure) * NS2S;
+
+//            Log.i("Connor", "dt = " + dt);
+
+            // Update the position if the acceleration for this component reaches the threshold
+
+
+            for (int i = 0; i < 3; i++) {
+                velocity[i] += ((acc[i] + acceleration[i]) / 2) * dt;
+//                velocity[i] += ((acc[i]) / 2) * dt;
+                position[i] += velocity[i] * dt;
+            }
+        } else {
+            firstPosition = false;
         }
 
         // Shallow copy acceleration to global variable
         System.arraycopy(acc, 0, acceleration, 0, 3);
 
+        // Copy the sign of the current acceleration
+        System.arraycopy(accSign, 0, prevSign, 0, 3);
+
         // Update the time of last update
         lastMeasure = event.timestamp;
-        Log.i("Connor", "Position update!");
+//        Log.i("Connor", "Position update!");
+        Log.i("Connor", "position = " + Arrays.toString(position));
 
     }
 
     private void updateRotationFromRotationVector(SensorEvent event) {
         rotation = event.values;
-        Log.i("Connor", "Rotation update!");
+//        Log.i("Connor", "Rotation update!");
+//        Log.i("Connor", Arrays.toString(rotation));
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        Log.i("Connor", "Sensor accuracy is " + accuracy);
+//        Log.i("Connor", "Sensor accuracy is " + accuracy);
     }
 
     // Helpers for shared memory
@@ -378,6 +424,8 @@ public class SharedCameraActivity extends Activity
     HandlerThread rotationThread;
     Handler rotationHandler;
 
+    ArFragment arFragment;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -400,11 +448,17 @@ public class SharedCameraActivity extends Activity
         // Helpers, see hello_ar_java sample to learn more.
         displayRotationHelper = new DisplayRotationHelper(this);
 
+        // Create fragment
+//        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
+
         // Initialize position and velocity to (0,0,0)
         position = new float[] {0, 0, 0};
         velocity = new float[] {0, 0, 0};
         acceleration = new float[] {0, 0, 0};
-        lastMeasure = 0;
+        firstPosition = true;
+        accSign = new int[] {1, 1, 1};
+        prevSign = new int[] {1, 1, 1};
+        root = new int[] {0, 0, 0};
 
         // Create threads and handlers for sensors
         accelerationThread = new HandlerThread("accelerationThread");
@@ -418,11 +472,12 @@ public class SharedCameraActivity extends Activity
         // Set the linear acceleration sensor.
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         linearAccelerationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        sensorManager.registerListener(eventListener, linearAccelerationSensor, SensorManager.SENSOR_DELAY_GAME, accelerationHandler);
+        sensorManager.registerListener(eventListener, linearAccelerationSensor, SensorManager.SENSOR_DELAY_NORMAL, accelerationHandler);
 
         // Set the rotation vector sensor.
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        sensorManager.registerListener(eventListener, rotationSensor, SensorManager.SENSOR_DELAY_GAME, accelerationHandler);
+        sensorManager.registerListener(eventListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL, accelerationHandler);
+
 
         // TODO: Get the gyroscope
 
@@ -675,6 +730,8 @@ public class SharedCameraActivity extends Activity
     // CPU image reader callback.
     @Override
     public void onImageAvailable(ImageReader imageReader) {
+
+        Log.i("Connor", "TOF camera is getting data!");
         Image image = imageReader.acquireLatestImage();
         if (image == null) {
             Log.w(TAG, "onImageAvailable: Skipping null image.");
@@ -807,7 +864,8 @@ public class SharedCameraActivity extends Activity
         // Store the ID of the camera used by ARCore.
         cameraId = sharedSession.getCameraConfig().getCameraId();
 
-        Log.i("Connor", cameraId);
+
+        Log.i("Connor cam id", cameraId);
 
         new Thread(new Runnable() {
             @Override
