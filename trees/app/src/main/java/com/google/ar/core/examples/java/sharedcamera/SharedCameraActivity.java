@@ -46,6 +46,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
+import android.util.SizeF;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -57,6 +58,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Config;
+import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 import com.google.ar.core.SharedCamera;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
@@ -64,6 +66,7 @@ import com.google.ar.core.examples.java.common.helpers.StoragePermissionHelper;
 import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
 import com.google.ar.core.examples.java.common.rendering.BackgroundRenderer;
 import com.google.ar.core.examples.java.common.rendering.OcclusionRenderer;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.UnavailableException;
 import com.google.ar.sceneform.ux.ArFragment;
 
@@ -98,6 +101,8 @@ public class SharedCameraActivity extends AppCompatActivity
 
     // Whether the surface texture has been attached to the GL context.
     boolean isGlAttached;
+
+    private static final String LOG_TAG = "Connor";
 
     // GL Surface used to draw camera preview image.
     private GLSurfaceView surfaceView;
@@ -232,23 +237,12 @@ public class SharedCameraActivity extends AppCompatActivity
             }
         }
 
-        // Compute the time increment
-//        Log.i("Connor", "lastMeasure = " + lastMeasure);
-//        Log.i("Connor", "timestamp = " + event.timestamp);
-//        Log.i("Connor", "Initial position " + Arrays.toString(position));
-        Log.i("Connor", "acceleration = " + Arrays.toString(acc));
-
-
         // If this is not the first position measurement
         if (!firstPosition) {
 
             float dt = (event.timestamp - lastMeasure) * NS2S;
 
-//            Log.i("Connor", "dt = " + dt);
-
             // Update the position if the acceleration for this component reaches the threshold
-
-
             for (int i = 0; i < 3; i++) {
                 velocity[i] += ((acc[i] + acceleration[i]) / 2) * dt;
 //                velocity[i] += ((acc[i]) / 2) * dt;
@@ -266,19 +260,17 @@ public class SharedCameraActivity extends AppCompatActivity
 
         // Update the time of last update
         lastMeasure = event.timestamp;
-//        Log.i("Connor", "Position update!");
-        Log.i("Connor", "position = " + Arrays.toString(position));
 
     }
 
     private void updateRotationFromRotationVector(SensorEvent event) {
         rotation = event.values;
-//        Log.i("Connor", "Rotation update!");
-//        Log.i("Connor", Arrays.toString(rotation));
+//        Log.i(LOG_TAG, "Rotation update!");
+//        Log.i(LOG_TAG, Arrays.toString(rotation));
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-//        Log.i("Connor", "Sensor accuracy is " + accuracy);
+//        Log.i(LOG_TAG, "Sensor accuracy is " + accuracy);
     }
 
     // Helpers for shared memory
@@ -413,7 +405,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
     // Classes for managing the sensors
     private SensorManager sensorManager;
-    // Acceleration uinits m/s^2
+    // Acceleration units m/s^2
     private Sensor linearAccelerationSensor;
     // Rotation sensor
     private Sensor rotationSensor;
@@ -447,9 +439,6 @@ public class SharedCameraActivity extends AppCompatActivity
 
         // Helpers, see hello_ar_java sample to learn more.
         displayRotationHelper = new DisplayRotationHelper(this);
-
-        // Create fragment
-//        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
         // Initialize position and velocity to (0,0,0)
         position = new float[] {0, 0, 0};
@@ -625,6 +614,31 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
+    // Function to return pixel array physical size for a given cameraID
+    private SizeF getCameraResolution(String cameraId, CameraManager cameraManager) {
+        SizeF size = new SizeF(0,0);
+        try {
+            CameraCharacteristics character = cameraManager.getCameraCharacteristics(cameraId);
+            size = character.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+        } catch (CameraAccessException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+        }
+        return size;
+    }
+
+    // Function to return TOF camera intrinsic parameters
+    private float[] getIntrinsicParams(String cameraId, CameraManager cameraManager) {
+        float[] params = new float[] {-1, -1, -1, -1, -1};
+        try {
+            CameraCharacteristics character = cameraManager.getCameraCharacteristics(cameraId);
+            params = character.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION);
+        } catch (CameraAccessException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+        }
+        return params;
+    }
+
+
     // Perform various checks, then open camera device and create CPU image reader.
 
     // TODO: can we just open both cameras?
@@ -641,7 +655,7 @@ public class SharedCameraActivity extends AppCompatActivity
                         2);
         cpuImageReader.setOnImageAvailableListener(this, backgroundHandler);
 
-        Log.i("Connor", "In openCameraAtIndex cameraId: "+cameraId);
+        Log.i(LOG_TAG, "In openCameraAtIndex cameraId: "+cameraId);
 
         // When ARCore is running, make sure it also updates our CPU image surface.
         sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReader.getSurface()));
@@ -658,6 +672,27 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Get the characteristics for the ARCore camera.
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
+
+            // Log the camera physical size (units = mm)
+            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
+
+            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
+
+            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
+
+            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
+            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
+
+
+//            float[] params = this.getIntrinsicParams(Integer.toString(TOF_ID), cameraManager);
+            float[] params = this.getIntrinsicParams("2", cameraManager);
+
+            for (int i = 1; i <= 4; i++) {
+                Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
+            }
+            Log.i(LOG_TAG, "Physical camera size for cameraId = " + Integer.toString(TOF_ID) +  " (mm) = " + cameraSize.toString());
 
             // On Android P and later, get list of keys that are difficult to apply per-frame and can
             // result in unexpected delays when modified during the capture session lifetime.
@@ -724,14 +759,13 @@ public class SharedCameraActivity extends AppCompatActivity
     // Surface texture on frame available callback, used only in non-AR mode.
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        // Log.d(TAG, "onFrameAvailable()");
+//         Log.d(TAG, "onFrameAvailable()");
     }
 
     // CPU image reader callback.
     @Override
     public void onImageAvailable(ImageReader imageReader) {
 
-        Log.i("Connor", "TOF camera is getting data!");
         Image image = imageReader.acquireLatestImage();
         if (image == null) {
             Log.w(TAG, "onImageAvailable: Skipping null image.");
@@ -739,38 +773,43 @@ public class SharedCameraActivity extends AppCompatActivity
         }
 
         // Buffers for storing TOF output
-        ArrayList<Integer> xBuffer = new ArrayList<>();
-        ArrayList<Integer> yBuffer = new ArrayList<>();
-        ArrayList<Integer> dBuffer = new ArrayList<>();
+        ArrayList<Short> xBuffer = new ArrayList<>();
+        ArrayList<Short> yBuffer = new ArrayList<>();
+        ArrayList<Float> dBuffer = new ArrayList<>();
         ArrayList<Float> percentageBuffer = new ArrayList<>();
 
         Image.Plane plane = image.getPlanes()[0];
         ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
-        ArrayList<Short> pixel = new ArrayList<Short>();
+        ArrayList<Short> pixel = new ArrayList<>();
         while (shortDepthBuffer.hasRemaining()) {
             pixel.add(shortDepthBuffer.get());
         }
         int stride = plane.getRowStride();
 
         int offset = 0;
+        float sum = 0.0f;
         float[] output = new float[image.getWidth() * image.getHeight()];
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
+        for (short y = 0; y < image.getHeight(); y++) {
+            for (short x = 0; x < image.getWidth(); x++) {
                 // Parse the data. Format is [depth|confidence]
-                int depthSample = pixel.get((int) (y / 2) * stride + x);
-                int depthRange = (depthSample & 0x1FFF);
-                int depthConfidence = ((depthSample >> 13) & 0x7);
+                short depthSample = pixel.get((int) (y / 2) * stride + x);
+                short depthRange = (short) (depthSample & 0x1FFF);
+                short depthConfidence = (short) ((depthSample >> 13) & 0x7);
                 float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
-                output[offset + x] = 0.0001f * depthRange;
 
+                output[offset + x] = (float)depthRange/10000;
+
+                sum += output[offset+x];
                 // Store data in buffer
                 xBuffer.add(x);
                 yBuffer.add(y);
-                dBuffer.add(depthSample);
+                dBuffer.add((float)depthRange / 1000.0f);
                 percentageBuffer.add(depthPercentage);
             }
             offset += image.getWidth();
         }
+
+//        Log.i(LOG_TAG, "Average depth = " + Float.toString(sum / (image.getHeight()*image.getWidth())));
         image.close();
 
         occlusionRenderer.update(output);
@@ -846,7 +885,7 @@ public class SharedCameraActivity extends AppCompatActivity
             try {
                 // Create ARCore session that supports camera sharing.
                 sharedSession = new Session(this, EnumSet.of(Session.Feature.SHARED_CAMERA));
-                Log.i("Connor", Session.Feature.SHARED_CAMERA.toString());
+                Log.i(LOG_TAG, Session.Feature.SHARED_CAMERA.toString());
             } catch (UnavailableException e) {
                 Log.e(TAG, "Failed to create ARCore session that supports camera sharing", e);
                 return;
@@ -855,6 +894,9 @@ public class SharedCameraActivity extends AppCompatActivity
             // Enable auto focus mode while ARCore is running.
             Config config = sharedSession.getConfig();
             config.setFocusMode(Config.FocusMode.AUTO);
+
+            // Enable non-blocking node on update call
+            config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
             sharedSession.configure(config);
         }
 
@@ -863,7 +905,6 @@ public class SharedCameraActivity extends AppCompatActivity
 
         // Store the ID of the camera used by ARCore.
         cameraId = sharedSession.getCameraConfig().getCameraId();
-
 
         Log.i("Connor cam id", cameraId);
 
@@ -884,7 +925,7 @@ public class SharedCameraActivity extends AppCompatActivity
                         // Finds the resolutions for the ToF camera.
                         String[] res = occlusionRenderer.getResolutions(SharedCameraActivity.this, cameraId).toArray(new String[0]);
 
-                        Log.i("Connor", Arrays.toString(res));
+                        Log.i(LOG_TAG, Arrays.toString(res));
 
 
                         if (res.length > 0) {
@@ -948,12 +989,12 @@ public class SharedCameraActivity extends AppCompatActivity
     // onCaptureImage sets captureImage to true, so that next time onImageAvailable is called,
     // the image will be saved to a file.
     public void onCaptureImage(View view) {
-        Log.i("Connor", "Capturing an image");
+        Log.i(LOG_TAG, "Capturing an image");
 
         // Verify STORAGE_PERMISSION has been granted.
         if (!StoragePermissionHelper.hasStoragePermission(this)) {
             StoragePermissionHelper.requestStoragePermission(this);
-            Log.i("Connor", "We don't have storage permission!");
+            Log.i(LOG_TAG, "We don't have storage permission!");
             return;
         }
 
@@ -984,7 +1025,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
     // Plus button to change the sample being read
     public void onSamplePlus(View view) {
-        Log.i("Connor", "adding to the sample num");
+        Log.i(LOG_TAG, "adding to the sample num");
 
         // If enabled, disable the delete button
         this.disableDeleteButton();
@@ -1007,23 +1048,11 @@ public class SharedCameraActivity extends AppCompatActivity
 
         // Change the on-screen number
         sampleNum.setText(Integer.toString(currentSample));
-
-
-//        // TODO: attempting to see how pose approximation works
-//        try {
-//            Frame curFrame = sharedSession.update();
-//            Log.i("Connor", "Success! Got the current frame, now getting the camera.");
-//            Camera cam = curFrame.getCamera();
-//            Log.i("Connor", "Success! Got the camera.");
-//            Log.i("Connor", "Not printing the pose " + cam.getPose().toString());
-//        } catch (CameraNotAvailableException e) {
-//            Log.i("Connor", "Camera is not available!\n");
-//        }
-    }
+}
 
     // Minus button for the sample being read
     public void onSampleMinus(View view) {
-
+        Log.i(LOG_TAG, "decrementing the sample num");
         // Get the text object which displays the current sample
         int sampleNumId = getResources().getIdentifier(SAMPLE_NUM_ID, "id", context.getPackageName());
         EditText sampleNum = (EditText) findViewById(sampleNumId);
@@ -1033,7 +1062,7 @@ public class SharedCameraActivity extends AppCompatActivity
         // Don't allow the sample number get less than 0
         if (currentSample - 1 == 0) {
             currentSample--;
-            Log.i("Connor" , "Enabling delete");
+            Log.i(LOG_TAG , "Enabling delete");
             this.enableDeleteButton();
         } else if (currentSample - 1 > 0) {
             currentSample--;
@@ -1053,46 +1082,19 @@ public class SharedCameraActivity extends AppCompatActivity
         // File object for the directory where the data is saved.
         File savedDir = new File(context.getFilesDir().getAbsolutePath()+"/samples");
 
-        Log.i("Connor", "Directory before deleting: ");
-
-        for (File file : savedDir.listFiles()) {
-            if (file.isFile()) {
-                Log.i("Connor", "File : " + file.getName());
-            } else if (file.isDirectory()) {
-                Log.i("Connor", "Directory : " + file.getName());
-            } else {
-                Log.i("Connor", "Unknown : " + file.getName());
-            }
-        }
-
         // Clean up the directory
         for (File file : savedDir.listFiles()) {
             file.delete();
         }
-
-        Log.i("Connor", "Directory after deleting: ");
-
-        for (File file : savedDir.listFiles()) {
-            if (file.isFile()) {
-                Log.i("Connor", "File : " + file.getName());
-            } else if (file.isDirectory()) {
-                Log.i("Connor", "Directory : " + file.getName());
-            } else {
-                Log.i("Connor", "Unknown : " + file.getName());
-            }
-        }
-
     }
 
-    // TODO: Note: before I refactored this, we were closing the FileWriter obj without closing
-    //       the FileOutputStream obj. This may have caused some problems
-    public void saveToFile(ArrayList<Integer> xBuffer, ArrayList<Integer> yBuffer,
-                           ArrayList<Integer> dBuffer, ArrayList<Float> percentageBuffer) {
+    public void saveToFile(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
+                           ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) {
 
         // Write the TOF data currently in buffers to an output file.
-        Log.i("Connor", "Writing to the file");
+        Log.i(LOG_TAG, "Writing to the file");
 
-        Log.i("Connor", context.getFilesDir().getAbsolutePath());
+        Log.i(LOG_TAG, context.getFilesDir().getAbsolutePath());
 
         // Open the output file for this sample
         // As recommended by:
@@ -1111,6 +1113,7 @@ public class SharedCameraActivity extends AppCompatActivity
         this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
 
         File outFile = new File(dir, sampleFName);
+
         // Write to the output file
         try (FileWriter writer = new FileWriter(outFile)) {
             StringBuilder str = new StringBuilder();
@@ -1127,7 +1130,7 @@ public class SharedCameraActivity extends AppCompatActivity
             }
             writer.write(str.toString());
             writer.flush();
-            Log.i("Connor", "Successfully wrote the file");
+            Log.i(LOG_TAG, "Successfully wrote the file");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1142,6 +1145,8 @@ public class SharedCameraActivity extends AppCompatActivity
             texture.attachToGLContext(backgroundRenderer.getTextureId());
             isGlAttached = true;
         }
+
+        List<Surface> surfaces  = sharedCamera.getArCoreSurfaces();
 
         // Update the surface.
         texture.updateTexImage();
