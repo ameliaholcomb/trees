@@ -675,6 +675,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Log the camera physical size (units = mm)
             SizeF cameraSize = this.getCameraResolution("0", cameraManager);
+            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
 
             int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
             Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
