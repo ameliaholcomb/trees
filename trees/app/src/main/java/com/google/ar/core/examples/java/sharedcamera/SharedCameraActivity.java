@@ -1091,6 +1091,9 @@ public class SharedCameraActivity extends AppCompatActivity
     public void onDeleteData(View view) {
         // File object for the directory where the data is saved.
         File savedDir = new File(this.fileSaveDir + "/samples");
+        if(!savedDir.exists()){
+            return;
+        }
 
         // Clean up the directory
         for (File file : savedDir.listFiles()) {
@@ -1101,9 +1104,6 @@ public class SharedCameraActivity extends AppCompatActivity
     public void saveToFile(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
                            ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
 
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
         // Open the output file for this sample
         // As recommended by:
         // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
@@ -1111,11 +1111,16 @@ public class SharedCameraActivity extends AppCompatActivity
         int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
         String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures++);
 
+        // Write the TOF data currently in buffers to an output file.
+        Log.i(LOG_TAG, "Writing to the file");
+
         File dir = new File(this.fileSaveDir, "/samples");
         Log.i(LOG_TAG, dir.getAbsolutePath());
 
         File outFile = new File(dir, sampleFName);
-        outFile.getParentFile().mkdirs();
+        if(!outFile.getParentFile().exists()) {
+            outFile.getParentFile().mkdirs();
+        }
 
         // Update the shared preferences for the number of captures
         this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
