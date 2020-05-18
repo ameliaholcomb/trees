@@ -186,7 +186,7 @@ public class SharedCameraActivity extends AppCompatActivity
     private int prevSign[];
     private int root[];
 
-//     Conversion factor NS to S
+    //     Conversion factor NS to S
     static final float NS2S = 1.0f / 1000000000.0f;
 
     SensorEventListener eventListener = new SensorEventListener() {
@@ -417,6 +417,11 @@ public class SharedCameraActivity extends AppCompatActivity
     Handler rotationHandler;
 
     ArFragment arFragment;
+
+    // path for storing data
+    private String fileSaveDir =
+            android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
+
 
 
     @Override
@@ -816,7 +821,11 @@ public class SharedCameraActivity extends AppCompatActivity
         occlusionRenderer.update(output);
 
         if (captureImage) {
-            saveToFile(xBuffer, yBuffer, dBuffer, percentageBuffer);
+            try {
+                saveToFile(xBuffer, yBuffer, dBuffer, percentageBuffer);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             captureImage = false;
         }
     }
@@ -1049,7 +1058,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
         // Change the on-screen number
         sampleNum.setText(Integer.toString(currentSample));
-}
+    }
 
     // Minus button for the sample being read
     public void onSampleMinus(View view) {
@@ -1081,7 +1090,7 @@ public class SharedCameraActivity extends AppCompatActivity
     // Method for deleting data
     public void onDeleteData(View view) {
         // File object for the directory where the data is saved.
-        File savedDir = new File(context.getFilesDir().getAbsolutePath()+"/samples");
+        File savedDir = new File(this.fileSaveDir + "/samples");
 
         // Clean up the directory
         for (File file : savedDir.listFiles()) {
@@ -1090,30 +1099,26 @@ public class SharedCameraActivity extends AppCompatActivity
     }
 
     public void saveToFile(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
-                           ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) {
+                           ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
 
         // Write the TOF data currently in buffers to an output file.
         Log.i(LOG_TAG, "Writing to the file");
 
-        Log.i(LOG_TAG, context.getFilesDir().getAbsolutePath());
-
         // Open the output file for this sample
         // As recommended by:
         // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
-        File dir = new File(context.getFilesDir(), "samples");
-        if (!dir.exists()) {
-            dir.mkdir();
-        }
-
         int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
         int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-
         String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures++);
+
+        File dir = new File(this.fileSaveDir, "/samples");
+        Log.i(LOG_TAG, dir.getAbsolutePath());
+
+        File outFile = new File(dir, sampleFName);
+        outFile.getParentFile().mkdirs();
 
         // Update the shared preferences for the number of captures
         this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
-
-        File outFile = new File(dir, sampleFName);
 
         // Write to the output file
         try (FileWriter writer = new FileWriter(outFile)) {
@@ -1131,7 +1136,7 @@ public class SharedCameraActivity extends AppCompatActivity
             }
             writer.write(str.toString());
             writer.flush();
-            Log.i(LOG_TAG, "Successfully wrote the file");
+            Log.i(LOG_TAG, "Successfully wrote the file " + sampleFName);
         } catch (IOException e) {
             e.printStackTrace();
         }
