@@ -21,8 +21,11 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -48,6 +51,7 @@ import android.util.Log;
 import android.util.Size;
 import android.util.SizeF;
 import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -71,8 +75,10 @@ import com.google.ar.core.exceptions.UnavailableException;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,16 +96,14 @@ public class SharedCameraActivity extends AppCompatActivity
         SurfaceTexture.OnFrameAvailableListener {
     private static final String TAG = SharedCameraActivity.class.getSimpleName();
 
+    // path for storing data
+    private String fileSaveDir =
+            android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
 
     // Parameters for the ToF camera
     private static final int TOF_ID = 4;
     private static final int TOF_HEIGHT = 180;
     private static final int TOF_WIDTH = 240;
-
-    // Parameters for the RGB camera
-    private static final int RGB_ID = 2;
-    private static final int RGB_HEIGHT = 180;
-    private static final int RGB_WIDTH = 240;
 
     // Whether to save the next available image to a file
     private boolean captureImage = false;
@@ -111,6 +115,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
     // GL Surface used to draw camera preview image.
     private GLSurfaceView surfaceView;
+    private GLSurfaceView surfaceView2;
 
     // ARCore session that supports camera sharing.
     private Session sharedSession;
@@ -122,8 +127,7 @@ public class SharedCameraActivity extends AppCompatActivity
     private List<CaptureRequest.Key<?>> keysThatCanCauseCaptureDelaysWhenModified;
 
     // Camera device. Used by both non-AR and AR modes.
-    private CameraDevice cameraDeviceDepth;
-    private CameraDevice cameraDeviceRGB;
+    private CameraDevice cameraDevice;
 
     // Looper handler thread.
     private HandlerThread backgroundThread;
@@ -150,7 +154,7 @@ public class SharedCameraActivity extends AppCompatActivity
     private CaptureRequest.Builder previewCaptureRequestBuilder;
 
     // Image reader that continuously processes CPU images.
-    private ImageReader cpuImageReaderDepth;
+    private ImageReader cpuImageReaderTOF;
     private ImageReader cpuImageReaderRGB;
 
     // Various helper classes, see hello_ar_java sample to learn more.
@@ -195,10 +199,6 @@ public class SharedCameraActivity extends AppCompatActivity
 
     //     Conversion factor NS to S
     static final float NS2S = 1.0f / 1000000000.0f;
-
-    // path for storing data
-    private String fileSaveDir =
-            android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
 
     SensorEventListener eventListener = new SensorEventListener() {
 
@@ -296,81 +296,48 @@ public class SharedCameraActivity extends AppCompatActivity
     }
 
     // Camera device state callback.
-    private final CameraDevice.StateCallback cameraDeviceDepthCallback =
+    private final CameraDevice.StateCallback cameraDeviceCallback =
             new CameraDevice.StateCallback() {
                 @Override
-                public void onOpened(CameraDevice cameraDeviceDepth) {
-                    Log.d(TAG, "Camera device depth ID " + cameraDeviceDepth.getId() + " opened.");
-                    SharedCameraActivity.this.cameraDeviceDepth = cameraDeviceDepth;
-                    createCameraDepthPreviewSession();
+                public void onOpened(CameraDevice cameraDevice) {
+                    Log.d(TAG, "Camera device ID " + cameraDevice.getId() + " opened.");
+                    SharedCameraActivity.this.cameraDevice = cameraDevice;
+                    createCameraPreviewSession();
                 }
 
                 @Override
-                public void onClosed(CameraDevice cameraDeviceDepth) {
-                    Log.d(TAG, "Camera device depth ID " + cameraDeviceDepth.getId() + " closed.");
-                    SharedCameraActivity.this.cameraDeviceDepth = null;
+                public void onClosed(CameraDevice cameraDevice) {
+                    Log.d(TAG, "Camera device ID " + cameraDevice.getId() + " closed.");
+                    SharedCameraActivity.this.cameraDevice = null;
                     safeToExitApp.open();
                 }
 
                 @Override
-                public void onDisconnected(CameraDevice cameraDeviceDepth) {
-                    Log.w(TAG, "Camera device depth ID " + cameraDeviceDepth.getId() + " disconnected.");
-                    cameraDeviceDepth.close();
-                    SharedCameraActivity.this.cameraDeviceDepth = null;
+                public void onDisconnected(CameraDevice cameraDevice) {
+                    Log.w(TAG, "Camera device ID " + cameraDevice.getId() + " disconnected.");
+                    cameraDevice.close();
+                    SharedCameraActivity.this.cameraDevice = null;
                 }
 
                 @Override
-                public void onError(CameraDevice cameraDeviceDepth, int error) {
-                    Log.e(TAG, "Camera device depth ID " + cameraDeviceDepth.getId() + " error " + error);
-                    cameraDeviceDepth.close();
-                    SharedCameraActivity.this.cameraDeviceDepth = null;
-                    // Fatal error. Quit application.
-                    finish();
-                }
-            };
-
-    private final CameraDevice.StateCallback cameraDeviceRGBCallback =
-            new CameraDevice.StateCallback() {
-                @Override
-                public void onOpened(CameraDevice cameraDeviceRGB) {
-                    Log.d(TAG, "Camera device RGB ID " + cameraDeviceRGB.getId() + " opened.");
-                    SharedCameraActivity.this.cameraDeviceRGB = cameraDeviceRGB;
-                    createCameraRGBPreviewSession();
-                }
-
-                @Override
-                public void onClosed(CameraDevice cameraDeviceRGB) {
-                    Log.d(TAG, "Camera device RGB ID " + cameraDeviceRGB.getId() + " closed.");
-                    SharedCameraActivity.this.cameraDeviceRGB = null;
-                    safeToExitApp.open();
-                }
-
-                @Override
-                public void onDisconnected(CameraDevice cameraDeviceRGB) {
-                    Log.w(TAG, "Camera device RGB ID " + cameraDeviceRGB.getId() + " disconnected.");
-                    cameraDeviceRGB.close();
-                    SharedCameraActivity.this.cameraDeviceRGB = null;
-                }
-
-                @Override
-                public void onError(CameraDevice cameraDeviceRGB, int error) {
-                    Log.e(TAG, "Camera device RGB ID " + cameraDeviceRGB.getId() + " error " + error);
-                    cameraDeviceRGB.close();
-                    SharedCameraActivity.this.cameraDeviceRGB = null;
+                public void onError(CameraDevice cameraDevice, int error) {
+                    Log.e(TAG, "Camera device ID " + cameraDevice.getId() + " error " + error);
+                    cameraDevice.close();
+                    SharedCameraActivity.this.cameraDevice = null;
                     // Fatal error. Quit application.
                     finish();
                 }
             };
 
     // Repeating camera capture session state callback.
-    CameraCaptureSession.StateCallback cameraDepthCaptureCallback =
+    CameraCaptureSession.StateCallback cameraCaptureCallback =
             new CameraCaptureSession.StateCallback() {
 
                 // Called when the camera capture session is first configured after the app
                 // is initialized, and again each time the activity is resumed.
                 @Override
                 public void onConfigured(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera depth capture session configured.");
+                    Log.d(TAG, "Camera capture session configured.");
                     captureSession = session;
                     resumeCamera2();
                 }
@@ -378,17 +345,17 @@ public class SharedCameraActivity extends AppCompatActivity
                 @Override
                 public void onSurfacePrepared(
                         CameraCaptureSession session, Surface surface) {
-                    Log.d(TAG, "Camera depth capture surface prepared.");
+                    Log.d(TAG, "Camera capture surface prepared.");
                 }
 
                 @Override
                 public void onReady(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera depth capture session ready.");
+                    Log.d(TAG, "Camera capture session ready.");
                 }
 
                 @Override
                 public void onActive(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera depth capture session active.");
+                    Log.d(TAG, "Camera capture session active.");
                     synchronized (SharedCameraActivity.this) {
                         captureSessionChangesPossible = true;
                         SharedCameraActivity.this.notify();
@@ -397,65 +364,17 @@ public class SharedCameraActivity extends AppCompatActivity
 
                 @Override
                 public void onCaptureQueueEmpty(CameraCaptureSession session) {
-                    Log.w(TAG, "Camera depth capture queue empty.");
+                    Log.w(TAG, "Camera capture queue empty.");
                 }
 
                 @Override
                 public void onClosed(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera cdepth apture session closed.");
+                    Log.d(TAG, "Camera capture session closed.");
                 }
 
                 @Override
                 public void onConfigureFailed(CameraCaptureSession session) {
-                    Log.e(TAG, "Failed to configure camera depth capture session.");
-                }
-            };
-
-    CameraCaptureSession.StateCallback cameraRGBCaptureCallback =
-            new CameraCaptureSession.StateCallback() {
-
-                // Called when the camera capture session is first configured after the app
-                // is initialized, and again each time the activity is resumed.
-                @Override
-                public void onConfigured(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera RGB capture session configured.");
-                    captureSession = session;
-                    resumeCamera2();
-                }
-
-                @Override
-                public void onSurfacePrepared(
-                        CameraCaptureSession session, Surface surface) {
-                    Log.d(TAG, "Camera RGB capture surface prepared.");
-                }
-
-                @Override
-                public void onReady(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera RGB capture session ready.");
-                }
-
-                @Override
-                public void onActive(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera RGB capture session active.");
-                    synchronized (SharedCameraActivity.this) {
-                        captureSessionChangesPossible = true;
-                        SharedCameraActivity.this.notify();
-                    }
-                }
-
-                @Override
-                public void onCaptureQueueEmpty(CameraCaptureSession session) {
-                    Log.w(TAG, "Camera RGB capture queue empty.");
-                }
-
-                @Override
-                public void onClosed(CameraCaptureSession session) {
-                    Log.d(TAG, "Camera RGB capture session closed.");
-                }
-
-                @Override
-                public void onConfigureFailed(CameraCaptureSession session) {
-                    Log.e(TAG, "Failed to configure camera RGB capture session.");
+                    Log.e(TAG, "Failed to configure camera capture session.");
                 }
             };
 
@@ -509,6 +428,7 @@ public class SharedCameraActivity extends AppCompatActivity
     Handler rotationHandler;
 
     ArFragment arFragment;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -646,7 +566,7 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
-    private void createCameraDepthPreviewSession() {
+    private void createCameraPreviewSession() {
         try {
             // Note that isGlAttached will be set to true in AR mode in onDrawFrame().
             sharedSession.setCameraTextureName(backgroundRenderer.getTextureId());
@@ -654,19 +574,25 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Create an ARCore compatible capture request using `TEMPLATE_RECORD`.
             previewCaptureRequestBuilder =
-                    cameraDeviceDepth.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+                    cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
 
             // Build surfaces list, starting with ARCore provided surfaces.
             List<Surface> surfaceList = sharedCamera.getArCoreSurfaces();
 
             // Add a CPU image reader surface. On devices that don't support CPU image access, the image
             // may arrive significantly later, or not arrive at all.
-            surfaceList.add(cpuImageReaderDepth.getSurface());
+            if(cpuImageReaderTOF != null){
+                surfaceList.add(cpuImageReaderTOF.getSurface());
+            }
+            if(cpuImageReaderRGB != null){
+                surfaceList.add(cpuImageReaderRGB.getSurface());
+            }
 
-            // Surface list should now contain three surfaces:
+            // Surface list should now contain four surfaces:
             // 0. sharedCamera.getSurfaceTexture()
             // 1. …
-            // 2. cpuImageReader.getSurface()
+            // 2. cpuImageReaderTOF.getSurface()
+            // 3. cpuImageReaderRGB.getSurface()
 
             // Add ARCore surfaces and CPU image surface targets.
             for (Surface surface : surfaceList) {
@@ -675,48 +601,10 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Wrap our callback in a shared camera callback.
             CameraCaptureSession.StateCallback wrappedCallback =
-                    sharedCamera.createARSessionStateCallback(cameraDepthCaptureCallback, backgroundHandler);
+                    sharedCamera.createARSessionStateCallback(cameraCaptureCallback, backgroundHandler);
 
             // Create camera capture session for camera preview using ARCore wrapped callback.
-            cameraDeviceDepth.createCaptureSession(surfaceList, wrappedCallback, backgroundHandler);
-        } catch (CameraAccessException e) {
-            Log.e(TAG, "CameraAccessException", e);
-        }
-    }
-
-    private void createCameraRGBPreviewSession() {
-        try {
-            // Note that isGlAttached will be set to true in AR mode in onDrawFrame().
-            sharedSession.setCameraTextureName(backgroundRenderer.getTextureId());
-            sharedCamera.getSurfaceTexture().setOnFrameAvailableListener(this);
-
-            // Create an ARCore compatible capture request using `TEMPLATE_RECORD`.
-            previewCaptureRequestBuilder =
-                    cameraDeviceRGB.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-
-            // Build surfaces list, starting with ARCore provided surfaces.
-            List<Surface> surfaceList = sharedCamera.getArCoreSurfaces();
-
-            // Add a CPU image reader surface. On devices that don't support CPU image access, the image
-            // may arrive significantly later, or not arrive at all.
-            surfaceList.add(cpuImageReaderRGB.getSurface());
-
-            // Surface list should now contain three surfaces:
-            // 0. sharedCamera.getSurfaceTexture()
-            // 1. …
-            // 2. cpuImageReader.getSurface()
-
-            // Add ARCore surfaces and CPU image surface targets.
-            for (Surface surface : surfaceList) {
-                previewCaptureRequestBuilder.addTarget(surface);
-            }
-
-            // Wrap our callback in a shared camera callback.
-            CameraCaptureSession.StateCallback wrappedCallback =
-                    sharedCamera.createARSessionStateCallback(cameraRGBCaptureCallback, backgroundHandler);
-
-            // Create camera capture session for camera preview using ARCore wrapped callback.
-            cameraDeviceRGB.createCaptureSession(surfaceList, wrappedCallback, backgroundHandler);
+            cameraDevice.createCaptureSession(surfaceList, wrappedCallback, backgroundHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "CameraAccessException", e);
         }
@@ -771,56 +659,52 @@ public class SharedCameraActivity extends AppCompatActivity
     // Perform various checks, then open camera device and create CPU image reader.
 
     // TODO: can we just open both cameras?
-    private void openCameraDepth(int index) {
-        String cameraIndex = Integer.toString(index);
-        cameraIndex = this.cameraId;
-
+    private void openCameraBoth() {
+        Log.i(LOG_TAG, "/////////////////////////////// openCameraBoth");
         // Use the currently configured CPU image size.
-        cpuImageReaderDepth =
+        cpuImageReaderTOF =
                 ImageReader.newInstance(
                         occlusionRenderer.getDepthWidth(),
                         occlusionRenderer.getDepthHeight(),
                         ImageFormat.DEPTH16,
                         2);
-        cpuImageReaderDepth.setOnImageAvailableListener(this, backgroundHandler);
+        cpuImageReaderTOF.setOnImageAvailableListener(this, backgroundHandler);
 
-        Log.i(LOG_TAG, "In openCameraDepth cameraId: "+cameraIndex);
+        cpuImageReaderRGB =
+                ImageReader.newInstance(
+                        occlusionRenderer.getDepthWidth(),
+                        occlusionRenderer.getDepthHeight(),
+                        ImageFormat.JPEG,
+                        2);
+        cpuImageReaderRGB.setOnImageAvailableListener(this, backgroundHandler);
+
+        Log.i(LOG_TAG, "In openCameraBoth cameraId: "+cameraId);
 
         // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(cameraIndex, Arrays.asList(cpuImageReaderDepth.getSurface()));
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderTOF.getSurface()));
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderRGB.getSurface()));
 
         try {
-
             // Wrap our callback in a shared camera callback.
             CameraDevice.StateCallback wrappedCallback =
-                    sharedCamera.createARDeviceStateCallback(cameraDeviceDepthCallback, backgroundHandler);
+                    sharedCamera.createARDeviceStateCallback(cameraDeviceCallback, backgroundHandler);
 
             // Store a reference to the camera system service.
             // Reference to the camera system service.
             CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
-            String[] id_list = cameraManager.getCameraIdList();
-            System.out.println("//////////////////////////////////////");
-            for(String id:id_list){
-                System.out.println(id);
-            }
-            System.out.println("//////////////////////////////////////");
 
             // Get the characteristics for the ARCore camera.
-            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraIndex);
+            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
 
             // Log the camera physical size (units = mm)
-            SizeF cameraSize = this.getCameraResolution(cameraIndex, cameraManager);
-            Log.i(LOG_TAG, "Size of Depth camera " + cameraIndex + " " + cameraSize.toString());
-            int[] capabilities = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-            Log.i(LOG_TAG, "Capabilities of Depth camera " + cameraIndex + " " + Arrays.toString(capabilities));
-            float[] translation = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-            Log.i(LOG_TAG, "translation of Depth camera " + cameraIndex + " " + Arrays.toString(translation));
-            boolean isExlusive = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
-            Log.i(LOG_TAG, "isexlusive of Depth camera " + cameraIndex + " " + Boolean.toString(isExlusive));
-
-
-//            float[] params = this.getIntrinsicParams(Integer.toString(TOF_ID), cameraManager);
-            float[] params = this.getIntrinsicParams("2", cameraManager);
+            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
+            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
+            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
+            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
+            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
+            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
 
             for (int i = 1; i <= 4; i++) {
                 Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
@@ -842,15 +726,78 @@ public class SharedCameraActivity extends AppCompatActivity
             captureSessionChangesPossible = false;
 
             // Open the camera device using the ARCore wrapped callback.
-            cameraManager.openCamera(cameraIndex, wrappedCallback, backgroundHandler);
+            cameraManager.openCamera(cameraId, wrappedCallback, backgroundHandler);
         } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
             Log.e(TAG, "Failed to open camera", e);
         }
     }
 
-    private void openCameraRGB(int index) {
-        String cameraIndex = Integer.toString(index);
+    private void openCameraTOF() {
+        Log.i(LOG_TAG, "/////////////////////////////// openCameraTOF");
+        // Use the currently configured CPU image size.
+        cpuImageReaderTOF =
+                ImageReader.newInstance(
+                        occlusionRenderer.getDepthWidth(),
+                        occlusionRenderer.getDepthHeight(),
+                        ImageFormat.DEPTH16,
+                        2);
+        cpuImageReaderTOF.setOnImageAvailableListener(this, backgroundHandler);
 
+        Log.i(LOG_TAG, "In openCameraTOF cameraId: "+cameraId);
+
+        // When ARCore is running, make sure it also updates our CPU image surface.
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderTOF.getSurface()));
+
+        try {
+            // Wrap our callback in a shared camera callback.
+            CameraDevice.StateCallback wrappedCallback =
+                    sharedCamera.createARDeviceStateCallback(cameraDeviceCallback, backgroundHandler);
+
+            // Store a reference to the camera system service.
+            // Reference to the camera system service.
+            CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
+
+            // Get the characteristics for the ARCore camera.
+            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
+
+            // Log the camera physical size (units = mm)
+            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
+            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
+            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
+            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
+            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
+            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
+
+            for (int i = 1; i <= 4; i++) {
+                Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
+            }
+            Log.i(LOG_TAG, "Physical camera size for cameraId = " + Integer.toString(TOF_ID) +  " (mm) = " + cameraSize.toString());
+
+            // On Android P and later, get list of keys that are difficult to apply per-frame and can
+            // result in unexpected delays when modified during the capture session lifetime.
+            if (Build.VERSION.SDK_INT >= 28) {
+                keysThatCanCauseCaptureDelaysWhenModified = characteristics.getAvailableSessionKeys();
+                if (keysThatCanCauseCaptureDelaysWhenModified == null) {
+                    // Initialize the list to an empty list if getAvailableSessionKeys() returns null.
+                    keysThatCanCauseCaptureDelaysWhenModified = new ArrayList<>();
+                }
+            }
+
+            // Prevent app crashes due to quick operations on camera open / close by waiting for the
+            // capture session's onActive() callback to be triggered.
+            captureSessionChangesPossible = false;
+
+            // Open the camera device using the ARCore wrapped callback.
+            cameraManager.openCamera(cameraId, wrappedCallback, backgroundHandler);
+        } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
+            Log.e(TAG, "Failed to open camera", e);
+        }
+    }
+
+    private void openCameraRGB() {
+        Log.i(LOG_TAG, "/////////////////////////////// openCameraRGB");
         // Use the currently configured CPU image size.
         cpuImageReaderRGB =
                 ImageReader.newInstance(
@@ -860,44 +807,58 @@ public class SharedCameraActivity extends AppCompatActivity
                         2);
         cpuImageReaderRGB.setOnImageAvailableListener(this, backgroundHandler);
 
-        Log.i(LOG_TAG, "In openCameraRGB cameraId: "+ index);
+        Log.i(LOG_TAG, "In openCameraRGB cameraId: "+cameraId);
 
         // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(cameraIndex, Arrays.asList(cpuImageReaderRGB.getSurface()));
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderRGB.getSurface()));
 
         try {
-
             // Wrap our callback in a shared camera callback.
             CameraDevice.StateCallback wrappedCallback =
-                    sharedCamera.createARDeviceStateCallback(cameraDeviceRGBCallback, backgroundHandler);
+                    sharedCamera.createARDeviceStateCallback(cameraDeviceCallback, backgroundHandler);
 
             // Store a reference to the camera system service.
             // Reference to the camera system service.
             CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
 
+            // Get the characteristics for the ARCore camera.
+            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
 
             // Log the camera physical size (units = mm)
-            SizeF cameraSize = this.getCameraResolution(cameraIndex, cameraManager);
-            Log.i(LOG_TAG, "Size of RGB camera " + cameraIndex + " " + cameraSize.toString());
-            int[] capabilities = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-            Log.i(LOG_TAG, "Capabilities of RGB camera " + cameraIndex + " " + Arrays.toString(capabilities));
-            float[] translation = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-            Log.i(LOG_TAG, "translation of RGB camera " + cameraIndex + " " + Arrays.toString(translation));
-            boolean isExlusive = cameraManager.getCameraCharacteristics(cameraIndex).get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
-            Log.i(LOG_TAG, "isexlusive of RGB camera " + cameraIndex + " " + Boolean.toString(isExlusive));
+            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
+            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
+            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
+            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
+            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
+            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
+            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
 
+            for (int i = 1; i <= 4; i++) {
+                Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
+            }
+            Log.i(LOG_TAG, "Physical camera size for cameraId = " + Integer.toString(TOF_ID) +  " (mm) = " + cameraSize.toString());
+
+            // On Android P and later, get list of keys that are difficult to apply per-frame and can
+            // result in unexpected delays when modified during the capture session lifetime.
+            if (Build.VERSION.SDK_INT >= 28) {
+                keysThatCanCauseCaptureDelaysWhenModified = characteristics.getAvailableSessionKeys();
+                if (keysThatCanCauseCaptureDelaysWhenModified == null) {
+                    // Initialize the list to an empty list if getAvailableSessionKeys() returns null.
+                    keysThatCanCauseCaptureDelaysWhenModified = new ArrayList<>();
+                }
+            }
 
             // Prevent app crashes due to quick operations on camera open / close by waiting for the
             // capture session's onActive() callback to be triggered.
             captureSessionChangesPossible = false;
 
             // Open the camera device using the ARCore wrapped callback.
-            cameraManager.openCamera(cameraIndex, wrappedCallback, backgroundHandler);
+            cameraManager.openCamera(cameraId, wrappedCallback, backgroundHandler);
         } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
             Log.e(TAG, "Failed to open camera", e);
         }
     }
-
 
 
     private <T> boolean checkIfKeyCanCauseDelay(CaptureRequest.Key<T> key) {
@@ -929,21 +890,15 @@ public class SharedCameraActivity extends AppCompatActivity
             captureSession.close();
             captureSession = null;
         }
-        if (cameraDeviceDepth != null) {
+        if (cameraDevice != null) {
             waitUntilCameraCaptureSesssionIsActive();
             safeToExitApp.close();
-            cameraDeviceDepth.close();
+            cameraDevice.close();
             safeToExitApp.block();
         }
-        if (cameraDeviceRGB != null) {
-            waitUntilCameraCaptureSesssionIsActive();
-            safeToExitApp.close();
-            cameraDeviceRGB.close();
-            safeToExitApp.block();
-        }
-        if (cpuImageReaderDepth != null) {
-            cpuImageReaderDepth.close();
-            cpuImageReaderDepth = null;
+        if (cpuImageReaderTOF != null) {
+            cpuImageReaderTOF.close();
+            cpuImageReaderTOF = null;
         }
         if (cpuImageReaderRGB != null) {
             cpuImageReaderRGB.close();
@@ -960,63 +915,86 @@ public class SharedCameraActivity extends AppCompatActivity
     // CPU image reader callback.
     @Override
     public void onImageAvailable(ImageReader imageReader) {
+        if(imageReader.getImageFormat() == ImageFormat.DEPTH16){
+            System.out.println("/////////////////////////// DEPTH16");
 
-        Image image = imageReader.acquireLatestImage();
-        if (image == null) {
-            Log.w(TAG, "onImageAvailable: Skipping null image.");
-            return;
-        }
-
-        // Buffers for storing TOF output
-        ArrayList<Short> xBuffer = new ArrayList<>();
-        ArrayList<Short> yBuffer = new ArrayList<>();
-        ArrayList<Float> dBuffer = new ArrayList<>();
-        ArrayList<Float> percentageBuffer = new ArrayList<>();
-
-        Image.Plane plane = image.getPlanes()[0];
-        ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
-        ArrayList<Short> pixel = new ArrayList<>();
-        while (shortDepthBuffer.hasRemaining()) {
-            pixel.add(shortDepthBuffer.get());
-        }
-        int stride = plane.getRowStride();
-
-        int offset = 0;
-        float sum = 0.0f;
-        float[] output = new float[image.getWidth() * image.getHeight()];
-        for (short y = 0; y < image.getHeight(); y++) {
-            for (short x = 0; x < image.getWidth(); x++) {
-                // Parse the data. Format is [depth|confidence]
-                short depthSample = pixel.get((int) (y / 2) * stride + x);
-                short depthRange = (short) (depthSample & 0x1FFF);
-                short depthConfidence = (short) ((depthSample >> 13) & 0x7);
-                float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
-
-                output[offset + x] = (float)depthRange/10000;
-
-                sum += output[offset+x];
-                // Store data in buffer
-                xBuffer.add(x);
-                yBuffer.add(y);
-                dBuffer.add((float)depthRange / 1000.0f);
-                percentageBuffer.add(depthPercentage);
+            Image image = imageReader.acquireLatestImage();
+            if (image == null) {
+                Log.w(TAG, "onImageAvailable: Skipping null image.");
+                return;
             }
-            offset += image.getWidth();
-        }
+
+            // Buffers for storing TOF output
+            ArrayList<Short> xBuffer = new ArrayList<>();
+            ArrayList<Short> yBuffer = new ArrayList<>();
+            ArrayList<Float> dBuffer = new ArrayList<>();
+            ArrayList<Float> percentageBuffer = new ArrayList<>();
+
+            Image.Plane plane = image.getPlanes()[0];
+            ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
+            ArrayList<Short> pixel = new ArrayList<>();
+            while (shortDepthBuffer.hasRemaining()) {
+                pixel.add(shortDepthBuffer.get());
+            }
+            int stride = plane.getRowStride();
+
+            int offset = 0;
+            float sum = 0.0f;
+            float[] output = new float[image.getWidth() * image.getHeight()];
+            for (short y = 0; y < image.getHeight(); y++) {
+                for (short x = 0; x < image.getWidth(); x++) {
+                    // Parse the data. Format is [depth|confidence]
+                    short depthSample = pixel.get((int) (y / 2) * stride + x);
+                    short depthRange = (short) (depthSample & 0x1FFF);
+                    short depthConfidence = (short) ((depthSample >> 13) & 0x7);
+                    float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
+
+                    output[offset + x] = (float)depthRange/10000;
+
+                    sum += output[offset+x];
+                    // Store data in buffer
+                    xBuffer.add(x);
+                    yBuffer.add(y);
+                    dBuffer.add((float)depthRange / 1000.0f);
+                    percentageBuffer.add(depthPercentage);
+                }
+                offset += image.getWidth();
+            }
 
 //        Log.i(LOG_TAG, "Average depth = " + Float.toString(sum / (image.getHeight()*image.getWidth())));
-        image.close();
+            image.close();
 
-        occlusionRenderer.update(output);
+            occlusionRenderer.update(output);
 
-        if (captureImage) {
-            try {
-                saveToFile(xBuffer, yBuffer, dBuffer, percentageBuffer);
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (captureImage) {
+                try {
+                    saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                captureImage = false;
             }
-            captureImage = false;
         }
+        else{
+            System.out.println("/////////////////////////// JPEG");
+
+            Image image = imageReader.acquireLatestImage();
+            if (image == null) {
+                Log.w(TAG, "onImageAvailable: Skipping null image.");
+                return;
+            }
+
+            if (captureImage) {
+                try {
+                    saveToFileRGB(image);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                captureImage = false;
+            }
+            image.close();
+        }
+
     }
 
     // Android permission request callback.
@@ -1065,7 +1043,7 @@ public class SharedCameraActivity extends AppCompatActivity
 
     private void openCamera() {
         // Don't open camera if already opened.
-        if (cameraDeviceDepth != null && cameraDeviceRGB != null) {
+        if (cameraDevice != null) {
             return;
         }
 
@@ -1133,8 +1111,9 @@ public class SharedCameraActivity extends AppCompatActivity
                             occlusionRenderer.setDepthHeight(TOF_HEIGHT);
 
                             // open the camera
-                            openCameraDepth(TOF_ID);
-                            // openCameraRGB(RGB_ID);
+                            // TODO: make saving possible from both tof and rgb camera
+                            //openCameraTOF();
+                            openCameraRGB();
 
                             // Indicate that the camera is ready
                             initialized = true;
@@ -1154,6 +1133,7 @@ public class SharedCameraActivity extends AppCompatActivity
                 });
             }
         }).start();
+
     }
 
     // GL surface changed callback. Will be called on the GL thread.
@@ -1291,8 +1271,8 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
-    public void saveToFile(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
-                           ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
+    public void saveToFileTOF(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
+                              ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
 
         // Open the output file for this sample
         // As recommended by:
@@ -1335,6 +1315,42 @@ public class SharedCameraActivity extends AppCompatActivity
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void saveToFileRGB(Image image) throws IOException {
+
+        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures++) + ".jpeg";
+
+        // Write the TOF data currently in buffers to an output file.
+        Log.i(LOG_TAG, "Writing to the file");
+
+        File dir = new File(this.fileSaveDir, "/samples");
+        Log.i(LOG_TAG, dir.getAbsolutePath());
+
+        File outFile = new File(dir, sampleFName);
+        if(!outFile.getParentFile().exists()) {
+            outFile.getParentFile().mkdirs();
+        }
+
+        // Update the shared preferences for the number of captures
+        this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
+
+        // Write to the output file
+        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+        byte[] imageBytes = new byte[buffer.remaining()];
+        buffer.get(imageBytes);
+        Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+        try {
+            FileOutputStream out = new FileOutputStream(outFile);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     // Draw frame when in non-AR mode. Called on the GL thread.
