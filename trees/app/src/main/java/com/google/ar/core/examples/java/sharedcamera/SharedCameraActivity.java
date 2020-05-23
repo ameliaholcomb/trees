@@ -1348,7 +1348,7 @@ public class SharedCameraActivity extends AppCompatActivity
             out.flush();
             out.close();
         } catch (Exception e) {
-            e.printStackTrace(); 
+            e.printStackTrace();
         }
 
     }
