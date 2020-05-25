@@ -24,8 +24,7 @@ class GalleryImageAdapter: RecyclerView.Adapter<GalleryHolder>() {
         val item = data[position]
 
         // Calculate the size of image and scale it down to reduce memory usage
-        val thumbnail = decodeSampledBitmapFromFile(item, 100, 100)
-
+        val thumbnail = decodeSampledBitmapFromFile(item, 25, 25)
         holder.imageView.setImageBitmap(thumbnail)
     }
 
