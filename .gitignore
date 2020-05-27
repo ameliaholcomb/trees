@@ -53,5 +53,5 @@ gradle-app.setting
 
 # End of https://www.gitignore.io/api/java,gradle
 
-# Cpp files
-PclProcessing/build/CMakeFiles/*
+# Cpp build files
+PclProcessing/build/*
