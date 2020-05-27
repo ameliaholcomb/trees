@@ -97,7 +97,7 @@ int writePcd(const std::string& filename, const std::string& outfile) {
 
 	// Write point cloud to file
 	pcl::io::savePCDFileASCII (outfile, *cloud);
-	std::cerr << "Saved " << cloud->size() << " data points to test_pcd.pcd" << std::endl;
+	std::cerr << "Saved " << cloud->size() << " data points to " << outfile << std::endl;
 
 	return(0);
 
