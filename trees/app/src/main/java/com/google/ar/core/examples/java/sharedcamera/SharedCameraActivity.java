@@ -154,8 +154,9 @@ public class SharedCameraActivity extends AppCompatActivity
     private CaptureRequest.Builder previewCaptureRequestBuilder;
 
     // Image reader that continuously processes CPU images.
-    private ImageReader cpuImageReaderTOF;
-    private ImageReader cpuImageReaderRGB;
+    private ImageReader cpuImageReaderBoth;
+    private ImageReader cpuImageReaderTOF; // depreciated
+    private ImageReader cpuImageReaderRGB; // depreciated
 
     // Various helper classes, see hello_ar_java sample to learn more.
     private DisplayRotationHelper displayRotationHelper;
@@ -581,18 +582,14 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Add a CPU image reader surface. On devices that don't support CPU image access, the image
             // may arrive significantly later, or not arrive at all.
-            if(cpuImageReaderTOF != null){
-                surfaceList.add(cpuImageReaderTOF.getSurface());
-            }
-            if(cpuImageReaderRGB != null){
-                surfaceList.add(cpuImageReaderRGB.getSurface());
+            if(cpuImageReaderBoth!= null){
+                surfaceList.add(cpuImageReaderBoth.getSurface());
             }
 
-            // Surface list should now contain four surfaces:
+            // Surface list should now contain three surfaces:
             // 0. sharedCamera.getSurfaceTexture()
             // 1. …
-            // 2. cpuImageReaderTOF.getSurface()
-            // 3. cpuImageReaderRGB.getSurface()
+            // 2. cpuImageReaderBoth.getSurface()
 
             // Add ARCore surfaces and CPU image surface targets.
             for (Surface surface : surfaceList) {
@@ -658,31 +655,22 @@ public class SharedCameraActivity extends AppCompatActivity
 
     // Perform various checks, then open camera device and create CPU image reader.
 
-    // TODO: can we just open both cameras?
+
     private void openCameraBoth() {
-        Log.i(LOG_TAG, "/////////////////////////////// openCameraBoth");
         // Use the currently configured CPU image size.
-        cpuImageReaderTOF =
+        // If we don't have one yet, we create one that accepts TOF images
+        cpuImageReaderBoth =
                 ImageReader.newInstance(
                         occlusionRenderer.getDepthWidth(),
                         occlusionRenderer.getDepthHeight(),
                         ImageFormat.DEPTH16,
                         2);
-        cpuImageReaderTOF.setOnImageAvailableListener(this, backgroundHandler);
-
-        cpuImageReaderRGB =
-                ImageReader.newInstance(
-                        occlusionRenderer.getDepthWidth(),
-                        occlusionRenderer.getDepthHeight(),
-                        ImageFormat.JPEG,
-                        2);
-        cpuImageReaderRGB.setOnImageAvailableListener(this, backgroundHandler);
+        cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
 
         Log.i(LOG_TAG, "In openCameraBoth cameraId: "+cameraId);
 
         // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderTOF.getSurface()));
-        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderRGB.getSurface()));
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
 
         try {
             // Wrap our callback in a shared camera callback.
@@ -732,6 +720,7 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
+    // depreciated
     private void openCameraTOF() {
         Log.i(LOG_TAG, "/////////////////////////////// openCameraTOF");
         // Use the currently configured CPU image size.
@@ -796,6 +785,7 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
+    // depreciated
     private void openCameraRGB() {
         Log.i(LOG_TAG, "/////////////////////////////// openCameraRGB");
         // Use the currently configured CPU image size.
@@ -896,13 +886,9 @@ public class SharedCameraActivity extends AppCompatActivity
             cameraDevice.close();
             safeToExitApp.block();
         }
-        if (cpuImageReaderTOF != null) {
-            cpuImageReaderTOF.close();
-            cpuImageReaderTOF = null;
-        }
-        if (cpuImageReaderRGB != null) {
-            cpuImageReaderRGB.close();
-            cpuImageReaderRGB = null;
+        if (cpuImageReaderBoth != null) {
+            cpuImageReaderBoth.close();
+            cpuImageReaderBoth = null;
         }
     }
 
@@ -915,8 +901,8 @@ public class SharedCameraActivity extends AppCompatActivity
     // CPU image reader callback.
     @Override
     public void onImageAvailable(ImageReader imageReader) {
+        // If the current image reader is accepting TOF images
         if(imageReader.getImageFormat() == ImageFormat.DEPTH16){
-            System.out.println("/////////////////////////// DEPTH16");
 
             Image image = imageReader.acquireLatestImage();
             if (image == null) {
@@ -972,12 +958,23 @@ public class SharedCameraActivity extends AppCompatActivity
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                captureImage = false;
+
+                // switch to a new CPU image reader that accepts RGB image
+                cpuImageReaderBoth.close();
+                cpuImageReaderBoth =
+                        ImageReader.newInstance(
+                                occlusionRenderer.getDepthWidth(),
+                                occlusionRenderer.getDepthHeight(),
+                                ImageFormat.JPEG,
+                                2);
+                cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
+                sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
+
+                // start with a new session
+                createCameraPreviewSession();
             }
         }
         else{
-            System.out.println("/////////////////////////// JPEG");
-
             Image image = imageReader.acquireLatestImage();
             if (image == null) {
                 Log.w(TAG, "onImageAvailable: Skipping null image.");
@@ -991,6 +988,20 @@ public class SharedCameraActivity extends AppCompatActivity
                     e.printStackTrace();
                 }
                 captureImage = false;
+
+                // switch to a new CPU image reader that accepts TOF image
+                cpuImageReaderBoth.close();
+                cpuImageReaderBoth =
+                        ImageReader.newInstance(
+                                occlusionRenderer.getDepthWidth(),
+                                occlusionRenderer.getDepthHeight(),
+                                ImageFormat.DEPTH16,
+                                2);
+                cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
+                sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
+
+                // start with a new session
+                createCameraPreviewSession();
             }
             image.close();
         }
@@ -1111,9 +1122,7 @@ public class SharedCameraActivity extends AppCompatActivity
                             occlusionRenderer.setDepthHeight(TOF_HEIGHT);
 
                             // open the camera
-                            // TODO: make saving possible from both tof and rgb camera
-                            //openCameraTOF();
-                            openCameraRGB();
+                            openCameraBoth();
 
                             // Indicate that the camera is ready
                             initialized = true;
@@ -1279,7 +1288,7 @@ public class SharedCameraActivity extends AppCompatActivity
         // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
         int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
         int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures++);
+        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures);
 
         // Write the TOF data currently in buffers to an output file.
         Log.i(LOG_TAG, "Writing to the file");
