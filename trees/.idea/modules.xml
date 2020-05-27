@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="trees/app" />
       <module fileurl="file://$PROJECT_DIR$/trees.iml" filepath="$PROJECT_DIR$/trees.iml" group="trees" />
+      <module fileurl="file://$PROJECT_DIR$/app/trees-app.iml" filepath="$PROJECT_DIR$/app/trees-app.iml" group="trees/app" />
+      <module fileurl="file://$PROJECT_DIR$/trees-trees.iml" filepath="$PROJECT_DIR$/trees-trees.iml" group="trees" />
     </modules>
   </component>
 </project>
