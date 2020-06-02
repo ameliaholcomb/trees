@@ -154,9 +154,9 @@ public class SharedCameraActivity extends AppCompatActivity
     private CaptureRequest.Builder previewCaptureRequestBuilder;
 
     // Image reader that continuously processes CPU images.
-    private ImageReader cpuImageReaderBoth;
-    private ImageReader cpuImageReaderTOF; // depreciated
-    private ImageReader cpuImageReaderRGB; // depreciated
+    private ImageReader cpuImageReaderCurrent = null;
+    private ImageReader cpuImageReaderTOF = null;
+    private ImageReader cpuImageReaderRGB = null;
 
     // Various helper classes, see hello_ar_java sample to learn more.
     private DisplayRotationHelper displayRotationHelper;
@@ -567,6 +567,7 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
+
     private void createCameraPreviewSession() {
         try {
             // Note that isGlAttached will be set to true in AR mode in onDrawFrame().
@@ -582,14 +583,14 @@ public class SharedCameraActivity extends AppCompatActivity
 
             // Add a CPU image reader surface. On devices that don't support CPU image access, the image
             // may arrive significantly later, or not arrive at all.
-            if(cpuImageReaderBoth!= null){
-                surfaceList.add(cpuImageReaderBoth.getSurface());
+            if(cpuImageReaderCurrent!= null){
+                surfaceList.add(cpuImageReaderCurrent.getSurface());
             }
 
             // Surface list should now contain three surfaces:
             // 0. sharedCamera.getSurfaceTexture()
             // 1. …
-            // 2. cpuImageReaderBoth.getSurface()
+            // 2. cpuImageReaderCurrent.getSurface()
 
             // Add ARCore surfaces and CPU image surface targets.
             for (Surface surface : surfaceList) {
@@ -606,6 +607,7 @@ public class SharedCameraActivity extends AppCompatActivity
             Log.e(TAG, "CameraAccessException", e);
         }
     }
+
 
     // Start background handler thread, used to run callbacks without blocking UI thread.
     private void startBackgroundThread() {
@@ -653,154 +655,52 @@ public class SharedCameraActivity extends AppCompatActivity
     }
 
 
+    // initialize TOF cpu image reader or switch between TOF and RGB cpu image reader
+    private void updateCpuImageReader(){
+        if(cpuImageReaderRGB == null){
+            cpuImageReaderRGB = ImageReader.newInstance(
+                    occlusionRenderer.getDepthWidth(),
+                    occlusionRenderer.getDepthHeight(),
+                    ImageFormat.JPEG,
+                    2);
+            Log.i(LOG_TAG, "updateCpuImageReader: create JPEG CPU image reader");
+        }
+
+        if(cpuImageReaderTOF == null){
+            cpuImageReaderTOF = ImageReader.newInstance(
+                    occlusionRenderer.getDepthWidth(),
+                    occlusionRenderer.getDepthHeight(),
+                    ImageFormat.DEPTH16,
+                    2);
+            Log.i(LOG_TAG, "updateCpuImageReader: create DEPTH16 CPU image reader");
+        }
+
+        if (cpuImageReaderCurrent == null){
+            cpuImageReaderCurrent = cpuImageReaderTOF;
+        }
+        else if(cpuImageReaderCurrent.getImageFormat() == ImageFormat.JPEG){
+            cpuImageReaderCurrent.setOnImageAvailableListener(null, null);
+            // switch to a new CPU image reader that accepts TOF image
+            cpuImageReaderCurrent = cpuImageReaderTOF;
+            Log.i(LOG_TAG, "updateCpuImageReader: update to DEPTH16 CPU image reader");
+        }
+        else if(cpuImageReaderCurrent.getImageFormat() == ImageFormat.DEPTH16){
+            cpuImageReaderCurrent.setOnImageAvailableListener(null, null);
+            // switch to a new CPU image reader that accepts RGB image
+            cpuImageReaderCurrent = cpuImageReaderRGB;
+            Log.i(LOG_TAG, "updateCpuImageReader: update to JPEG CPU image reader");
+        }
+
+        cpuImageReaderCurrent.setOnImageAvailableListener(this, backgroundHandler);
+        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderCurrent.getSurface()));
+    }
+
+
     // Perform various checks, then open camera device and create CPU image reader.
-
-
     private void openCameraBoth() {
-        // Use the currently configured CPU image size.
-        // If we don't have one yet, we create one that accepts TOF images
-        cpuImageReaderBoth =
-                ImageReader.newInstance(
-                        occlusionRenderer.getDepthWidth(),
-                        occlusionRenderer.getDepthHeight(),
-                        ImageFormat.DEPTH16,
-                        2);
-        cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
-
         Log.i(LOG_TAG, "In openCameraBoth cameraId: "+cameraId);
 
-        // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
-
-        try {
-            // Wrap our callback in a shared camera callback.
-            CameraDevice.StateCallback wrappedCallback =
-                    sharedCamera.createARDeviceStateCallback(cameraDeviceCallback, backgroundHandler);
-
-            // Store a reference to the camera system service.
-            // Reference to the camera system service.
-            CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
-
-            // Get the characteristics for the ARCore camera.
-            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
-
-            // Log the camera physical size (units = mm)
-            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
-            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
-            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
-            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
-            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
-            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
-
-            for (int i = 1; i <= 4; i++) {
-                Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
-            }
-            Log.i(LOG_TAG, "Physical camera size for cameraId = " + Integer.toString(TOF_ID) +  " (mm) = " + cameraSize.toString());
-
-            // On Android P and later, get list of keys that are difficult to apply per-frame and can
-            // result in unexpected delays when modified during the capture session lifetime.
-            if (Build.VERSION.SDK_INT >= 28) {
-                keysThatCanCauseCaptureDelaysWhenModified = characteristics.getAvailableSessionKeys();
-                if (keysThatCanCauseCaptureDelaysWhenModified == null) {
-                    // Initialize the list to an empty list if getAvailableSessionKeys() returns null.
-                    keysThatCanCauseCaptureDelaysWhenModified = new ArrayList<>();
-                }
-            }
-
-            // Prevent app crashes due to quick operations on camera open / close by waiting for the
-            // capture session's onActive() callback to be triggered.
-            captureSessionChangesPossible = false;
-
-            // Open the camera device using the ARCore wrapped callback.
-            cameraManager.openCamera(cameraId, wrappedCallback, backgroundHandler);
-        } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
-            Log.e(TAG, "Failed to open camera", e);
-        }
-    }
-
-    // depreciated
-    private void openCameraTOF() {
-        Log.i(LOG_TAG, "/////////////////////////////// openCameraTOF");
-        // Use the currently configured CPU image size.
-        cpuImageReaderTOF =
-                ImageReader.newInstance(
-                        occlusionRenderer.getDepthWidth(),
-                        occlusionRenderer.getDepthHeight(),
-                        ImageFormat.DEPTH16,
-                        2);
-        cpuImageReaderTOF.setOnImageAvailableListener(this, backgroundHandler);
-
-        Log.i(LOG_TAG, "In openCameraTOF cameraId: "+cameraId);
-
-        // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderTOF.getSurface()));
-
-        try {
-            // Wrap our callback in a shared camera callback.
-            CameraDevice.StateCallback wrappedCallback =
-                    sharedCamera.createARDeviceStateCallback(cameraDeviceCallback, backgroundHandler);
-
-            // Store a reference to the camera system service.
-            // Reference to the camera system service.
-            CameraManager cameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
-
-            // Get the characteristics for the ARCore camera.
-            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(this.cameraId);
-
-            // Log the camera physical size (units = mm)
-            SizeF cameraSize = this.getCameraResolution("0", cameraManager);
-            Log.i(LOG_TAG, "Size of camera 0 " + cameraSize.toString());
-            int[] capabilities = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
-            Log.i(LOG_TAG, "Capabilities of camera 0 " + Arrays.toString(capabilities));
-            float[] translation = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.LENS_POSE_TRANSLATION);
-            Log.i(LOG_TAG, "translation of camera 0 " + Arrays.toString(translation));
-            boolean isExlusive = cameraManager.getCameraCharacteristics("0").get(CameraCharacteristics.DEPTH_DEPTH_IS_EXCLUSIVE);
-            Log.i(LOG_TAG, "isexlusive of camera 0 " + Boolean.toString(isExlusive));
-
-            for (int i = 1; i <= 4; i++) {
-                Log.i(LOG_TAG, "Intrinsic params for cameraId = " + Integer.toString(i) + Arrays.toString(this.getIntrinsicParams(Integer.toString(i), cameraManager)));
-            }
-            Log.i(LOG_TAG, "Physical camera size for cameraId = " + Integer.toString(TOF_ID) +  " (mm) = " + cameraSize.toString());
-
-            // On Android P and later, get list of keys that are difficult to apply per-frame and can
-            // result in unexpected delays when modified during the capture session lifetime.
-            if (Build.VERSION.SDK_INT >= 28) {
-                keysThatCanCauseCaptureDelaysWhenModified = characteristics.getAvailableSessionKeys();
-                if (keysThatCanCauseCaptureDelaysWhenModified == null) {
-                    // Initialize the list to an empty list if getAvailableSessionKeys() returns null.
-                    keysThatCanCauseCaptureDelaysWhenModified = new ArrayList<>();
-                }
-            }
-
-            // Prevent app crashes due to quick operations on camera open / close by waiting for the
-            // capture session's onActive() callback to be triggered.
-            captureSessionChangesPossible = false;
-
-            // Open the camera device using the ARCore wrapped callback.
-            cameraManager.openCamera(cameraId, wrappedCallback, backgroundHandler);
-        } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
-            Log.e(TAG, "Failed to open camera", e);
-        }
-    }
-
-    // depreciated
-    private void openCameraRGB() {
-        Log.i(LOG_TAG, "/////////////////////////////// openCameraRGB");
-        // Use the currently configured CPU image size.
-        cpuImageReaderRGB =
-                ImageReader.newInstance(
-                        occlusionRenderer.getDepthWidth(),
-                        occlusionRenderer.getDepthHeight(),
-                        ImageFormat.JPEG,
-                        2);
-        cpuImageReaderRGB.setOnImageAvailableListener(this, backgroundHandler);
-
-        Log.i(LOG_TAG, "In openCameraRGB cameraId: "+cameraId);
-
-        // When ARCore is running, make sure it also updates our CPU image surface.
-        sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderRGB.getSurface()));
+        updateCpuImageReader();
 
         try {
             // Wrap our callback in a shared camera callback.
@@ -874,6 +774,7 @@ public class SharedCameraActivity extends AppCompatActivity
         }
     }
 
+
     // Close the camera device.
     private void closeCamera() {
         if (captureSession != null) {
@@ -886,10 +787,15 @@ public class SharedCameraActivity extends AppCompatActivity
             cameraDevice.close();
             safeToExitApp.block();
         }
-        if (cpuImageReaderBoth != null) {
-            cpuImageReaderBoth.close();
-            cpuImageReaderBoth = null;
+        if (cpuImageReaderRGB != null) {
+            cpuImageReaderRGB.close();
+            cpuImageReaderRGB = null;
         }
+        if (cpuImageReaderTOF != null) {
+            cpuImageReaderTOF.close();
+            cpuImageReaderTOF = null;
+        }
+        cpuImageReaderCurrent = null;
     }
 
     // Surface texture on frame available callback, used only in non-AR mode.
@@ -897,6 +803,7 @@ public class SharedCameraActivity extends AppCompatActivity
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
 //         Log.d(TAG, "onFrameAvailable()");
     }
+
 
     // CPU image reader callback.
     @Override
@@ -959,22 +866,12 @@ public class SharedCameraActivity extends AppCompatActivity
                     e.printStackTrace();
                 }
 
-                // switch to a new CPU image reader that accepts RGB image
-                cpuImageReaderBoth.close();
-                cpuImageReaderBoth =
-                        ImageReader.newInstance(
-                                occlusionRenderer.getDepthWidth(),
-                                occlusionRenderer.getDepthHeight(),
-                                ImageFormat.JPEG,
-                                2);
-                cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
-                sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
-
-                // start with a new session
+                // switch cpu image reader and start with a new session
+                updateCpuImageReader();
                 createCameraPreviewSession();
             }
         }
-        else{
+        else if(imageReader.getImageFormat() == ImageFormat.JPEG){
             Image image = imageReader.acquireLatestImage();
             if (image == null) {
                 Log.w(TAG, "onImageAvailable: Skipping null image.");
@@ -989,18 +886,8 @@ public class SharedCameraActivity extends AppCompatActivity
                 }
                 captureImage = false;
 
-                // switch to a new CPU image reader that accepts TOF image
-                cpuImageReaderBoth.close();
-                cpuImageReaderBoth =
-                        ImageReader.newInstance(
-                                occlusionRenderer.getDepthWidth(),
-                                occlusionRenderer.getDepthHeight(),
-                                ImageFormat.DEPTH16,
-                                2);
-                cpuImageReaderBoth.setOnImageAvailableListener(this, backgroundHandler);
-                sharedCamera.setAppSurfaces(this.cameraId, Arrays.asList(cpuImageReaderBoth.getSurface()));
-
-                // start with a new session
+                // switch cpu image reader and start with a new session
+                updateCpuImageReader();
                 createCameraPreviewSession();
             }
             image.close();
