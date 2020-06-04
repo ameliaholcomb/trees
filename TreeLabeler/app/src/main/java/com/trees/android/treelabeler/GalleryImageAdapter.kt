@@ -1,5 +1,6 @@
 package com.trees.android.treelabeler
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
@@ -26,6 +27,11 @@ class GalleryImageAdapter: RecyclerView.Adapter<GalleryHolder>() {
         // Calculate the size of image and scale it down to reduce memory usage
         val thumbnail = decodeSampledBitmapFromFile(item, 25, 25)
         holder.imageView.setImageBitmap(thumbnail)
+        holder.imageView.setOnClickListener {
+            val intent = Intent(it.context, EditActivity::class.java)
+            intent.putExtra("FILE_NAME", item)
+            it.context.startActivity(intent)
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GalleryHolder {
