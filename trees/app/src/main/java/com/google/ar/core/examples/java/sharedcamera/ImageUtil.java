@@ -14,6 +14,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+
+/*
+
+An image utility class for converting images from different format to byte array for saving
+
+ */
+
 public class ImageUtil {
     public static byte[] imageToByteArray(Image image) {
         byte[] data = null;

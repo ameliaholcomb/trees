@@ -21,18 +21,11 @@ import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextureRenderUtil;
 import com.huawei.hiar.ARCamera;
 import com.huawei.hiar.ARFrame;
-import com.huawei.hiar.ARHitResult;
 import com.huawei.hiar.ARLightEstimate;
 import com.huawei.hiar.ARPlane;
-import com.huawei.hiar.ARPoint;
-import com.huawei.hiar.ARPose;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARTrackable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -184,7 +177,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
                 lightPixelIntensity = lightEstimate.getPixelIntensity();
             }
 
-            mActivity.captureImage(arFrame);
+            mActivity.extractImage(arFrame);
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.
             Log.e(TAG, "Exception on the OpenGL thread", t);
