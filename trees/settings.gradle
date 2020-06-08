@@ -1,1 +1,1 @@
-include ':app'
+include ':app', ':HUAWEI AR Engine SDK_v2.10.0'

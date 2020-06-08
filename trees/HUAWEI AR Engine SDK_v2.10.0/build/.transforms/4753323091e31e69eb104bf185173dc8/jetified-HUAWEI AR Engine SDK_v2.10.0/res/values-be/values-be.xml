@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"АДМЯНІЦЬ"</string>
+    <string name="__arengine_install" priority="translator">"УСТАНАВІЦЬ"</string>
+    <string name="__arengine_install_app" priority="translator">"Устанавіце апошнюю версію HUAWEI AR Engine, каб працягнуць."</string>
+    <string name="__arengine_set_wireless" priority="translator">"ОК"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Няма падключэння да інтэрнэту. Праверце налады сеткі."</string>
+</resources>

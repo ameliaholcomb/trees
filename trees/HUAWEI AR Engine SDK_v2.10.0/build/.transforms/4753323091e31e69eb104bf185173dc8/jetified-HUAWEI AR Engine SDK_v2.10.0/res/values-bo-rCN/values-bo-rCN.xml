@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"རྩིས་མེད།"</string>
+    <string name="__arengine_install" priority="translator">"སྒྲིག་འཇུག"</string>
+    <string name="__arengine_install_app" priority="translator">"ཁྱེད་ཀྱིས་ཧྭ་ཝེ་ AR སྒུལ་བྱེད་འཕྲུལ་ཆས་ཀྱི་པར་གཞི་གསར་པ་སྒྲིག་འཇུག་བྱས་རྗེས་ད་གཟོད་སྤྱོད་ཆོག"</string>
+    <string name="__arengine_set_wireless" priority="translator">"ཤེས་སོང་།"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"དྲ་རྒྱ་སྦྲེལ་མེད་པས། དྲ་རྒྱའི་སྒྲིག་འགོད་ལ་བརྟག་རོགས།"</string>
+</resources>

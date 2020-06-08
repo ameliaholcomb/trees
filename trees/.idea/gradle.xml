@@ -10,6 +10,7 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/HUAWEI AR Engine SDK_v2.10.0" />
             <option value="$PROJECT_DIR$/app" />
           </set>
         </option>
