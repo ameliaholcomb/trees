@@ -8,9 +8,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
+import android.util.Size;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -20,6 +22,7 @@ import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil
 import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextureRenderUtil;
 import com.huawei.hiar.ARCamera;
+import com.huawei.hiar.ARCameraConfig;
 import com.huawei.hiar.ARFrame;
 import com.huawei.hiar.ARLightEstimate;
 import com.huawei.hiar.ARPlane;
@@ -149,11 +152,11 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             mSession.setCameraTextureName(mTextureRenderUtil.getExternalTextureId());
             ARFrame arFrame = mSession.update();
             ARCamera arCamera = arFrame.getCamera();
+            // ARCameraConfig arCameraConfig = mSession.getCameraConfig();
             mTextureRenderUtil.onDrawFrame(arFrame);
 
             // The size of projection matrix is 4 * 4.
             float[] projectionMatrix = new float[16];
-
             // Obtain the projection matrix of AR camera.
             arCamera.getProjectionMatrix(projectionMatrix, PROJ_MATRIX_OFFSET, PROJ_MATRIX_NEAR, PROJ_MATRIX_FAR);
 
@@ -164,6 +167,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             // The size of view matrix is 4 * 4.
             float[] viewMatrix = new float[16];
             arCamera.getViewMatrix(viewMatrix, 0);
+
             for (ARPlane plane : mSession.getAllTrackables(ARPlane.class)) {
                 if (plane.getType() != ARPlane.PlaneType.UNKNOWN_FACING
                         && plane.getTrackingState() == ARTrackable.TrackingState.TRACKING) {
@@ -175,9 +179,38 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             ARLightEstimate lightEstimate = arFrame.getLightEstimate();
             if (lightEstimate.getState() != ARLightEstimate.State.NOT_VALID) {
                 lightPixelIntensity = lightEstimate.getPixelIntensity();
-            }
+            };
 
-            mActivity.extractImage(arFrame);
+            mActivity.extractImageData(arFrame, projectionMatrix, viewMatrix);
+
+//            System.out.println("///////////////////////////////////////////////////////");
+//            for(int i = 0; i < 4; i++){
+//                for(int j = 0; j < 4; j++){
+//                    System.out.print(viewMatrix[4 * i + j] + ", ");
+//                }
+//                System.out.println();
+//            }
+//            Image imgRGB = arFrame.acquireCameraImage();
+//            Image imgTOF = arFrame.acquireDepthImage();
+//            float w = imgTOF.getWidth();
+//            float h = imgTOF.getHeight();
+//            Size s = arCameraConfig.getImageDimensions();
+//            System.out.println("img.w: " + w);
+//            System.out.println("img.h: " + h);
+//            System.out.println("camera.w: " + s.getWidth());
+//            System.out.println("camera.h: " + s.getHeight());
+//
+//            float cx = Math.abs(w * (1.0f - projectionMatrix[2 * 4 + 0]) / 2.0f);
+//            float cy = Math.abs(h * (1.0f - projectionMatrix[2 * 4 + 1]) / 2.0f);
+//            float fx = Math.abs(w * projectionMatrix[0 * 4 + 0] / 2.0f);
+//            float fy = Math.abs(h * projectionMatrix[1 * 4 + 1] / 2.0f);
+//            System.out.println("cx: " + cx);
+//            System.out.println("cy: " + cy);
+//            System.out.println("fx: " + fx);
+//            System.out.println("fy: " + fy);
+//            System.out.println("///////////////////////////////////////////////////////");
+
+
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.
             Log.e(TAG, "Exception on the OpenGL thread", t);

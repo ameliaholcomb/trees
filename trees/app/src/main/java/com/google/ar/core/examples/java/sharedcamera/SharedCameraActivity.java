@@ -66,8 +66,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -439,7 +442,7 @@ public class SharedCameraActivity extends AppCompatActivity {
 
 
     // extract RGB and TOF image from the given arFrame
-    public void extractImage(ARFrame arFrame) {
+    public void extractImageData(ARFrame arFrame, float[] projectionMatrix,  float[] viewMatrix) {
         if(arFrame == null){
             return;
         }
@@ -496,7 +499,7 @@ public class SharedCameraActivity extends AppCompatActivity {
             imgTOF.close();
         }
 
-        if(imgRGB != null){
+        if(imgRGB != null ){
             if(CAPTURE_IMAGE){
                 try {
                     saveToFileRGB(imgRGB);
@@ -508,7 +511,21 @@ public class SharedCameraActivity extends AppCompatActivity {
             imgRGB.close();
         }
 
-        CAPTURE_IMAGE = false;
+        if(projectionMatrix != null && viewMatrix != null){
+            if(CAPTURE_IMAGE){
+                try {
+                    saveToFileMatrix(projectionMatrix, viewMatrix);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        if(CAPTURE_IMAGE){
+            // Update the shared preferences for the number of captures
+            this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, this.getSharedPreferencesVar(SHARED_NUM_CAPTURES) + 1);
+            CAPTURE_IMAGE = false;
+        }
     }
 
 
@@ -624,9 +641,6 @@ public class SharedCameraActivity extends AppCompatActivity {
             outFile.getParentFile().mkdirs();
         }
 
-        // Update the shared preferences for the number of captures
-        this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
-
         // Write to the output file
         try (FileWriter writer = new FileWriter(outFile)) {
             StringBuilder str = new StringBuilder();
@@ -652,7 +666,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     public void saveToFileRGB(Image image) throws IOException {
         int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
         int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures++) + ".jpeg";
+        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures) + ".jpeg";
 
         // Write the TOF data currently in buffers to an output file.
         Log.i(LOG_TAG, "Writing to the file");
@@ -665,15 +679,56 @@ public class SharedCameraActivity extends AppCompatActivity {
             outFile.getParentFile().mkdirs();
         }
 
-        // Update the shared preferences for the number of captures
-        this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, numCaptures);
-
         byte[] imageBytes = ImageUtil.imageToByteArray(image);
 
         Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
         try {
             FileOutputStream out = new FileOutputStream(outFile);
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void saveToFileMatrix(float[] projectionMatrix,  float[] viewMatrix) throws IOException {
+        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures) + ".txt";
+
+        // Write the TOF data currently in buffers to an output file.
+        Log.i(LOG_TAG, "Writing to the file");
+
+        File dir = new File(this.fileSaveDir, "/samples");
+        Log.i(LOG_TAG, dir.getAbsolutePath());
+
+        File outFile = new File(dir, sampleFName);
+        if(!outFile.getParentFile().exists()) {
+            outFile.getParentFile().mkdirs();
+        }
+
+        try {
+            DecimalFormat df = new DecimalFormat("#.##########");
+            df.setRoundingMode(RoundingMode.CEILING);
+            PrintWriter out = new PrintWriter(outFile);
+            for (int i = 0; i < projectionMatrix.length; i++){
+                if(i != 0){
+                    out.printf(", ");
+                }
+                out.printf(df.format(projectionMatrix[i]));
+            }
+            out.printf("\n");
+
+            for (int i = 0; i < viewMatrix.length; i++){
+                if(i != 0){
+                    out.printf(", ");
+                }
+                out.printf(df.format(viewMatrix[i]));
+            }
+            out.printf("\n");
+            out.close();
             out.flush();
             out.close();
         } catch (Exception e) {
