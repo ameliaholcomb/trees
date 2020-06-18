@@ -38,7 +38,7 @@ class GalleryActivity : AppCompatActivity() {
         // path for storing data
         val file = getAlbumStorageDir(this, "/Trees")
 
-        val dataList = mutableListOf<String>()
+        val dataList = ArrayList<String>()
 
         //Get permission for storage
         when (PackageManager.PERMISSION_GRANTED) {

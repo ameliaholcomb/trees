@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 class GalleryHolder(val imageView: ImageView) : RecyclerView.ViewHolder(imageView)
 
 class GalleryImageAdapter: RecyclerView.Adapter<GalleryHolder>() {
-    var data = listOf<String>()
+    var data = ArrayList<String>()
         set(value) {
             field = value
             notifyDataSetChanged()
@@ -25,11 +25,12 @@ class GalleryImageAdapter: RecyclerView.Adapter<GalleryHolder>() {
         val item = data[position]
 
         // Calculate the size of image and scale it down to reduce memory usage
-        val thumbnail = decodeSampledBitmapFromFile(item, 25, 25)
+        val thumbnail = decodeSampledBitmapFromFile(item, 50, 50)
         holder.imageView.setImageBitmap(thumbnail)
         holder.imageView.setOnClickListener {
             val intent = Intent(it.context, EditActivity::class.java)
-            intent.putExtra("FILE_NAME", item)
+            intent.putExtra("IMAGES", data)
+            intent.putExtra("CURRENT_INDEX", position)
             it.context.startActivity(intent)
         }
     }
