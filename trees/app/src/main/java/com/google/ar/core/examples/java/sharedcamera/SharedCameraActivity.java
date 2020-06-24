@@ -472,9 +472,9 @@ public class SharedCameraActivity extends AppCompatActivity {
                 for (short x = 0; x < imgTOF.getWidth(); x++) {
                     // Parse the data. Format is [depth|confidence]
                     short depthSample = pixel.get((int) (y / 2) * stride + x);
-                    short depthRange = (short) (depthSample & 0x1FFF);
-                    short depthConfidence = (short) ((depthSample >> 13) & 0x7);
-                    float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
+                    float depthRange = (float)((depthSample & 0xFFF8) >> 3);
+                    short depthConfidence = (short)(depthSample & 0x7);
+                    float depthPercentage = depthConfidence; // == 0 ? 1.f : (depthConfidence - 1) / 7.f;
 
                     output[offset + x] = (float)depthRange/10000;
 
@@ -482,7 +482,7 @@ public class SharedCameraActivity extends AppCompatActivity {
                     // Store data in buffer
                     xBuffer.add(x);
                     yBuffer.add(y);
-                    dBuffer.add((float)depthRange / 1000.0f);
+                    dBuffer.add(depthRange / 1000.0f);
                     percentageBuffer.add(depthPercentage);
                 }
                 offset += imgTOF.getWidth();
