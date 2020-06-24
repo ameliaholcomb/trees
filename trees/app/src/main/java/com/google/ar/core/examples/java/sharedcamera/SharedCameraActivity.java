@@ -455,26 +455,25 @@ public class SharedCameraActivity extends AppCompatActivity {
             ArrayList<Short> xBuffer = new ArrayList<>();
             ArrayList<Short> yBuffer = new ArrayList<>();
             ArrayList<Float> dBuffer = new ArrayList<>();
+            ArrayList<String> bBuffer = new ArrayList<>(); ///////////////////////////////////////
             ArrayList<Float> percentageBuffer = new ArrayList<>();
 
             Image.Plane plane = imgTOF.getPlanes()[0];
             ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
-            ArrayList<Short> pixel = new ArrayList<>();
-            while (shortDepthBuffer.hasRemaining()) {
-                pixel.add(shortDepthBuffer.get());
-            }
-            int stride = plane.getRowStride();
 
+            int stride = plane.getRowStride();
             int offset = 0;
             float sum = 0.0f;
             float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
             for (short y = 0; y < imgTOF.getHeight(); y++) {
                 for (short x = 0; x < imgTOF.getWidth(); x++) {
                     // Parse the data. Format is [depth|confidence]
-                    short depthSample = pixel.get((int) (y / 2) * stride + x);
-                    float depthRange = (float)((depthSample & 0xFFF8) >> 3);
-                    short depthConfidence = (short)(depthSample & 0x7);
-                    float depthPercentage = depthConfidence; // == 0 ? 1.f : (depthConfidence - 1) / 7.f;
+                    short depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x);
+//                    float depthRange = (float)((depthSample & 0xFFF8) >> 3);
+//                    short depthConfidence = (short)(depthSample & 0x7);
+                    short depthRange = (short) (depthSample & 0x1FFF);
+                    short depthConfidence = (short) ((depthSample >> 13) & 0x7);
+                    float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
 
                     output[offset + x] = (float)depthRange/10000;
 
@@ -482,6 +481,10 @@ public class SharedCameraActivity extends AppCompatActivity {
                     // Store data in buffer
                     xBuffer.add(x);
                     yBuffer.add(y);
+                    // bBuffer.add(String.format("%16s", Integer.toBinaryString(0xFFFF & depthSample)).replace(' ', '0')); ////////////////////////////
+//                    System.out.print(depthRange + ",");
+//                    System.out.println(depthRange / 1000.0f);
+//                    System.out.println(depthRange + ",");
                     dBuffer.add(depthRange / 1000.0f);
                     percentageBuffer.add(depthPercentage);
                 }
@@ -491,6 +494,7 @@ public class SharedCameraActivity extends AppCompatActivity {
             if(CAPTURE_IMAGE){
                 try {
                     saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
+                    // saveToFileTOF2(xBuffer, yBuffer, bBuffer); ////////////////////////////////////////
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -654,6 +658,47 @@ public class SharedCameraActivity extends AppCompatActivity {
                 str.append(',');
                 str.append(percentageBuffer.get(i));
                 str.append('\n');
+            }
+            writer.write(str.toString());
+            writer.flush();
+            Log.i(LOG_TAG, "Successfully wrote the file " + sampleFName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveToFileTOF2(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
+                              ArrayList<String> bBuffer) throws IOException {
+        // Open the output file for this sample
+        // As recommended by:
+        // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
+        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures);
+
+        // Write the TOF data currently in buffers to an output file.
+        Log.i(LOG_TAG, "Writing to the file");
+
+        File dir = new File(this.fileSaveDir, "/samples");
+        Log.i(LOG_TAG, dir.getAbsolutePath());
+
+        File outFile = new File(dir, sampleFName);
+        if(!outFile.getParentFile().exists()) {
+            outFile.getParentFile().mkdirs();
+        }
+
+        // Write to the output file
+        try (FileWriter writer = new FileWriter(outFile)) {
+            StringBuilder str = new StringBuilder();
+
+            for (int i = 0; i < bBuffer.size(); i++) {
+                str.append(xBuffer.get(i));
+                str.append(',');
+                str.append(yBuffer.get(i));
+                str.append(',');
+                str.append(bBuffer.get(i));
+                str.append('\n');
+                System.out.println(bBuffer.get(i));
             }
             writer.write(str.toString());
             writer.flush();
