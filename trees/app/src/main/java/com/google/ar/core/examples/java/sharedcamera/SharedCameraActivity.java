@@ -58,6 +58,7 @@ import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARFrame;
+import com.huawei.hiar.ARImage;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
@@ -448,7 +449,7 @@ public class SharedCameraActivity extends AppCompatActivity {
         }
 
         Image imgRGB = arFrame.acquireCameraImage();
-        Image imgTOF = arFrame.acquireDepthImage();
+        ARImage imgTOF = (ARImage) arFrame.acquireDepthImage();
 
         if(imgTOF != null){
             // Buffers for storing TOF output
@@ -458,7 +459,7 @@ public class SharedCameraActivity extends AppCompatActivity {
             ArrayList<String> bBuffer = new ArrayList<>(); ///////////////////////////////////////
             ArrayList<Float> percentageBuffer = new ArrayList<>();
 
-            Image.Plane plane = imgTOF.getPlanes()[0];
+            ARImage.Plane plane = imgTOF.getPlanes()[0];
             ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
 
             int stride = plane.getRowStride();
@@ -468,11 +469,11 @@ public class SharedCameraActivity extends AppCompatActivity {
             for (short y = 0; y < imgTOF.getHeight(); y++) {
                 for (short x = 0; x < imgTOF.getWidth(); x++) {
                     // Parse the data. Format is [depth|confidence]
-                    short depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x);
-//                    float depthRange = (float)((depthSample & 0xFFF8) >> 3);
-//                    short depthConfidence = (short)(depthSample & 0x7);
-                    short depthRange = (short) (depthSample & 0x1FFF);
-                    short depthConfidence = (short) ((depthSample >> 13) & 0x7);
+                    int depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x) & 0xFFFF;
+                    depthSample = (((depthSample & 0xFF) << 8) & 0xFF00) | (((depthSample & 0xFF00) >> 8) & 0xFF);
+                    short depthSampleShort = (short) depthSample;
+                    short depthRange = (short) (depthSampleShort & 0x1FFF);
+                    short depthConfidence = (short) ((depthSampleShort >> 13) & 0x7);
                     float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
 
                     output[offset + x] = (float)depthRange/10000;
