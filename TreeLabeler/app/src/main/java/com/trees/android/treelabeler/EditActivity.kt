@@ -55,7 +55,8 @@ class EditActivity : AppCompatActivity() {
 
         contentBinding.treeEditImage.labelRectangles.add(LabelRectangle(200f,200f,400f, 400f))
         if (data != null) {
-            contentBinding.treeEditImage.treeImage = decodeSampledBitmapFromFile(data[index])
+            val treeImage = decodeSampledBitmapFromFile(data[index])
+            contentBinding.treeEditImage.treeImage = treeImage
         }
     }
 
