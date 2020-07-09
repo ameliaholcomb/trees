@@ -29,7 +29,6 @@ class GalleryImageAdapter: RecyclerView.Adapter<GalleryHolder>() {
         holder.imageView.setImageBitmap(thumbnail)
         holder.imageView.setOnClickListener {
             val intent = Intent(it.context, EditActivity::class.java)
-            intent.putExtra("IMAGES", data)
             intent.putExtra("CURRENT_INDEX", position)
             it.context.startActivity(intent)
         }
