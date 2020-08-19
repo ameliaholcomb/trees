@@ -6,6 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import kotlin.math.min
 
@@ -25,7 +27,28 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
             invalidate()
         }
 
-    var imageScaleMultiplier : Float = 1f
+    private var imageScaleMultiplier : Float = 1f
+
+    private var scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            imageScaleMultiplier *= detector.scaleFactor
+
+            // Don't let the object get too small or too large
+            imageScaleMultiplier = Math.max(0.1f, Math.min(imageScaleMultiplier, 5.0f))
+
+            invalidate()
+            return true
+        }
+    }
+
+    private val scaleDetector = ScaleGestureDetector(context, scaleListener)
+
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        // Let the ScaleGestureDetector inspect all events.
+        scaleDetector.onTouchEvent(ev)
+        return true
+    }
 
     var labelRectangles : ArrayList<LabelRectangle> = ArrayList()
 
