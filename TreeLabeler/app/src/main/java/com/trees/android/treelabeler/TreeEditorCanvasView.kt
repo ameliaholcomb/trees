@@ -3,12 +3,13 @@ package com.trees.android.treelabeler
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import androidx.core.view.GestureDetectorCompat
 import kotlin.math.min
 
 
@@ -28,6 +29,8 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
         }
 
     private var imageScaleMultiplier : Float = 1f
+    private var imageTranslateX : Float = 0f
+    private var imageTranslateY : Float = 0f
 
     private var scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
@@ -35,19 +38,42 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
             imageScaleMultiplier *= detector.scaleFactor
 
             // Don't let the object get too small or too large
-            imageScaleMultiplier = Math.max(0.1f, Math.min(imageScaleMultiplier, 5.0f))
+            imageScaleMultiplier = Math.max(1.0f, Math.min(imageScaleMultiplier, 5.0f))
 
             invalidate()
             return true
         }
     }
 
+    private var panListener = object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+
+        override fun onScroll(
+            e1: MotionEvent,
+            e2: MotionEvent,
+            distanceX: Float,
+            distanceY: Float
+        ): Boolean {
+            // Scrolling uses math based on the viewport (as opposed to math using pixels).
+            imageTranslateX -= distanceX
+            imageTranslateY -= distanceY
+            invalidate()
+            return true
+        }
+
+
+    }
+
     private val scaleDetector = ScaleGestureDetector(context, scaleListener)
+    private val panDetector = GestureDetectorCompat(context, panListener)
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         // Let the ScaleGestureDetector inspect all events.
-        scaleDetector.onTouchEvent(ev)
-        return true
+        val scale_event = scaleDetector.onTouchEvent(ev)
+        val pan_event = panDetector.onTouchEvent(ev)
+        return scale_event || pan_event || super.onTouchEvent(ev)
     }
 
     var labelRectangles : ArrayList<LabelRectangle> = ArrayList()
@@ -57,6 +83,7 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
         val image = treeImage
         if (image != null && canvas != null) {
             canvas.scale(imageScaleMultiplier, imageScaleMultiplier)
+            canvas.translate(imageTranslateX, imageTranslateY)
             val imageWidth = image.width
             val imageHeight = image.height
             val canvasViewHeight = height
