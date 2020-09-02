@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
@@ -57,6 +58,12 @@ class EditActivity : AppCompatActivity() {
         if (data != null) {
             val treeImage = decodeSampledBitmapFromFile(data[index])
             contentBinding.treeEditImage.treeImage = treeImage
+        }
+
+        val fab: View = findViewById(R.id.edit_fab)
+        val canvasView: TreeEditorCanvasView = findViewById(R.id.tree_edit_image)
+        fab.setOnClickListener { view ->
+            canvasView.onClickAddFab(view)
         }
     }
 

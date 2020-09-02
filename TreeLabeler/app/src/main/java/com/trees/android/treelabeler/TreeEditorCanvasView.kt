@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.view.GestureDetectorCompat
+import com.google.android.material.snackbar.Snackbar
 import kotlin.math.min
 
 
@@ -95,5 +96,11 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
                 canvas.drawRect(labelRectangle.left, labelRectangle.top, labelRectangle.right, labelRectangle.bottom, paint)
             }
         }
+    }
+
+    fun onClickAddFab(view: View) {
+        Snackbar.make(view, "Here's a Kitkat", Snackbar.LENGTH_LONG)
+            .setAction("Action", null)
+            .show()
     }
 }

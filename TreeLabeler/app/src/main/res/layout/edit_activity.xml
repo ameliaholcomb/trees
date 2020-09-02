@@ -14,10 +14,20 @@
             android:id="@+id/tree_edit_image"
             />
         <com.google.android.material.bottomappbar.BottomAppBar
+            android:id="@+id/edit_bottom_app_bar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/toolbar_height"
             android:layout_gravity="bottom"
             style="@style/Widget.MaterialComponents.BottomAppBar.Colored"
             />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/edit_fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:tint="@android:color/white"
+            app:srcCompat="@drawable/ic_add_white_24dp"
+            app:layout_anchor="@id/edit_bottom_app_bar"
+            />
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>
