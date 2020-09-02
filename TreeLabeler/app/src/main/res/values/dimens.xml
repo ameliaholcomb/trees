@@ -3,5 +3,5 @@
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="text_margin">16dp</dimen>
     <dimen name="thumbnail_size">100dp</dimen>
-    <dimen name="toolbar_height">100dp</dimen>
+    <dimen name="toolbar_height">60dp</dimen>
 </resources>

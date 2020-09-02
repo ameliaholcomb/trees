@@ -62,8 +62,6 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
             invalidate()
             return true
         }
-
-
     }
 
     private val scaleDetector = ScaleGestureDetector(context, scaleListener)
