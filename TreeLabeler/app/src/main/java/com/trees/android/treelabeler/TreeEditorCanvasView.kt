@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.view.GestureDetectorCompat
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import kotlin.math.min
 
@@ -32,6 +33,8 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
     private var imageScaleMultiplier : Float = 1f
     private var imageTranslateX : Float = 0f
     private var imageTranslateY : Float = 0f
+
+    private var isEditMode : Boolean = false
 
     private var scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
@@ -98,9 +101,12 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
         }
     }
 
-    fun onClickAddFab(view: View) {
-        Snackbar.make(view, "Here's a Kitkat", Snackbar.LENGTH_LONG)
-            .setAction("Action", null)
-            .show()
+    fun onClickAddFab(fab: FloatingActionButton, view: View) {
+        if (isEditMode) {
+            fab.setImageResource(R.drawable.ic_add_white_24dp)
+        } else {
+            fab.setImageResource(R.drawable.ic_check_white_24dp)
+        }
+        isEditMode = !isEditMode
     }
 }

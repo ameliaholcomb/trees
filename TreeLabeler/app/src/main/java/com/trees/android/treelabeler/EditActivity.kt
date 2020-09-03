@@ -11,6 +11,7 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.trees.android.treelabeler.databinding.EditActivityBinding
 
 class EditActivity : AppCompatActivity() {
@@ -60,10 +61,10 @@ class EditActivity : AppCompatActivity() {
             contentBinding.treeEditImage.treeImage = treeImage
         }
 
-        val fab: View = findViewById(R.id.edit_fab)
+        val fab: FloatingActionButton = findViewById(R.id.edit_fab)
         val canvasView: TreeEditorCanvasView = findViewById(R.id.tree_edit_image)
         fab.setOnClickListener { view ->
-            canvasView.onClickAddFab(view)
+            canvasView.onClickAddFab(fab, view)
         }
     }
 
