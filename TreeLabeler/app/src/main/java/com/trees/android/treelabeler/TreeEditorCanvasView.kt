@@ -5,17 +5,18 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.view.GestureDetectorCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
+import kotlin.math.max
 import kotlin.math.min
 
 
-data class LabelRectangle(val left: Float, val top: Float, val right: Float, val bottom: Float)
+data class LabelRectangle(var left: Float, var top: Float, var right: Float, var bottom: Float)
 
 class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(context, attributeSet) {
     val paint : Paint = {
@@ -31,10 +32,19 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
         }
 
     private var imageScaleMultiplier : Float = 1f
+    private var imageScaleRatio : Float = 1f
     private var imageTranslateX : Float = 0f
     private var imageTranslateY : Float = 0f
 
     private var isEditMode : Boolean = false
+
+    private var add_rect_x1 : Float = 0f
+    private var add_rect_y1 : Float = 0f
+    private var add_rect_x2 : Float = 0f
+    private var add_rect_y2 : Float = 0f
+
+    private var edit_rect : LabelRectangle = LabelRectangle(0f, 0f, 0f, 0f)
+
 
     private var scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
@@ -73,9 +83,69 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         // Let the ScaleGestureDetector inspect all events.
-        val scale_event = scaleDetector.onTouchEvent(ev)
-        val pan_event = panDetector.onTouchEvent(ev)
-        return scale_event || pan_event || super.onTouchEvent(ev)
+        var scale_event = false
+        var drag_event = false
+        if (!isEditMode) {
+            scale_event = scaleDetector.onTouchEvent(ev)
+            drag_event = panDetector.onTouchEvent(ev)
+        } else {
+            val action: Int = ev.getAction()
+            val x = ev.x
+            val y = ev.y
+            when (action) {
+                MotionEvent.ACTION_DOWN -> {
+                    add_touch_start(x,y)
+                    invalidate()
+                    return true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    add_touch_move(x,y)
+                    invalidate()
+                    return true
+                }
+                MotionEvent.ACTION_UP -> {
+                    add_touch_up(x,y)
+                    invalidate()
+                    return true
+                }
+            }
+        }
+        return scale_event || drag_event || super.onTouchEvent(ev)
+    }
+
+    fun add_touch_start(x: Float, y: Float) {
+        add_rect_x1 = x
+        add_rect_y1 = y
+        add_rect_x2 = x
+        add_rect_y2 = y
+        edit_rect = LabelRectangle(x, y, x, y)
+    }
+
+    fun add_touch_move(x: Float, y: Float) {
+        add_rect_x2 = x
+        add_rect_y2 = y
+        val rect_left = min(add_rect_x1, add_rect_x2)
+        val rect_right = max(add_rect_x1, add_rect_x2)
+        val rect_top = min(add_rect_y1, add_rect_y2)
+        val rect_bot = max(add_rect_y1, add_rect_y2)
+        edit_rect.top = rect_top
+        edit_rect.bottom = rect_bot
+        edit_rect.left = rect_left
+        edit_rect.right = rect_right
+    }
+
+    fun add_touch_up(x: Float, y: Float) {
+        add_rect_x2 = x
+        add_rect_y2 = y
+        val rect_left = min(add_rect_x1, add_rect_x2)
+        val rect_right = max(add_rect_x1, add_rect_x2)
+        val rect_top = min(add_rect_y1, add_rect_y2)
+        val rect_bot = max(add_rect_y1, add_rect_y2)
+        edit_rect.top = (rect_top / imageScaleMultiplier - imageTranslateY) / imageScaleRatio
+        edit_rect.bottom = (rect_bot / imageScaleMultiplier- imageTranslateY) / imageScaleRatio
+        edit_rect.left = (rect_left / imageScaleMultiplier - imageTranslateX) / imageScaleRatio
+        edit_rect.right = (rect_right / imageScaleMultiplier - imageTranslateX) / imageScaleRatio
+        labelRectangles.add(edit_rect)
     }
 
     var labelRectangles : ArrayList<LabelRectangle> = ArrayList()
@@ -92,7 +162,7 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
             val canvasViewWidth = width
             val xRatio : Float = canvasViewWidth / imageWidth.toFloat()
             val yRatio : Float = canvasViewHeight / imageHeight.toFloat()
-            val imageScaleRatio = min(xRatio, yRatio)
+            imageScaleRatio = min(xRatio, yRatio)
             canvas.scale(imageScaleRatio, imageScaleRatio)
             canvas.drawBitmap(image, 0f, 0f, null)
             for (labelRectangle in labelRectangles) {
