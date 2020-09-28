@@ -31,6 +31,8 @@ class TreeEditorCanvasView(context: Context, attributeSet: AttributeSet) : View(
             invalidate()
         }
 
+    var csvFileName: String? = null
+
     private var imageScaleMultiplier : Float = 1f
     private var imageScaleRatio : Float = 1f
     private var imageTranslateX : Float = 0f

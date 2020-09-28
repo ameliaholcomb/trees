@@ -7,14 +7,21 @@ import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
-import android.view.View
+import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.LifecycleOwner
+import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.trees.android.treelabeler.databinding.EditActivityBinding
+import java.io.File
+import java.io.FileNotFoundException
 
-class EditActivity : AppCompatActivity() {
+
+class EditActivity : AppCompatActivity(), LifecycleOwner {
+    var contentBinding: EditActivityBinding? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.edit_activity)
@@ -52,13 +59,29 @@ class EditActivity : AppCompatActivity() {
 
         val index = this.intent.getIntExtra("CURRENT_INDEX", 0)
 
-        val contentBinding: EditActivityBinding = DataBindingUtil.setContentView(
+        contentBinding = DataBindingUtil.setContentView(
             this, R.layout.edit_activity)
 
-        contentBinding.treeEditImage.labelRectangles.add(LabelRectangle(200f,200f,400f, 400f))
         if (data != null) {
             val treeImage = decodeSampledBitmapFromFile(data[index])
-            contentBinding.treeEditImage.treeImage = treeImage
+            contentBinding?.treeEditImage?.treeImage = treeImage
+            val imagePath = data[index].split("/")
+            val imageFileName = imagePath.last()
+            val csvFileName = imageFileName.replace(".jpg", ".csv")
+            contentBinding?.treeEditImage?.csvFileName = csvFileName
+            val file = File(applicationContext.filesDir, csvFileName)
+            try {
+                val rows: List<Map<String, String>> = csvReader().readAllWithHeader(file)
+                for (row in rows) {
+                    val left = row["left"]?.toFloatOrNull()
+                    val right = row["right"]?.toFloatOrNull()
+                    val top = row["top"]?.toFloatOrNull()
+                    val bottom = row["bottom"]?.toFloatOrNull()
+                    if ((left != null) and (right != null) and (top != null) and (bottom != null)) {
+                        contentBinding?.treeEditImage?.labelRectangles?.add(LabelRectangle(left!!,top!!,right!!,bottom!!))
+                    }
+                }
+            } catch (e: FileNotFoundException) { }
         }
 
         val fab: FloatingActionButton = findViewById(R.id.edit_fab)
@@ -76,5 +99,20 @@ class EditActivity : AppCompatActivity() {
         return BitmapFactory.Options().run {
             BitmapFactory.decodeFile(file, this)
         }
+    }
+
+    override fun onDestroy() {
+        val rectangles = contentBinding?.treeEditImage?.labelRectangles
+        val csvFileName = contentBinding?.treeEditImage?.csvFileName
+        val file = File(applicationContext.filesDir, csvFileName!!)
+        if (rectangles != null && rectangles.count() > 0) {
+            var rows = mutableListOf(listOf("left", "top", "right", "bottom"))
+            for (rectangle in rectangles) {
+                val row = listOf(rectangle.left.toString(), rectangle.top.toString(), rectangle.right.toString(), rectangle.bottom.toString())
+                rows.add(row)
+            }
+            csvWriter().writeAll(rows, file)
+        }
+        super.onDestroy()
     }
 }
