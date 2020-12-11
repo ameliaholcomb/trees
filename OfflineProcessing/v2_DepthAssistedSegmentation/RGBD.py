@@ -27,26 +27,8 @@ from scipy.stats import mode
 from sys import argv, exit
 from termcolor import colored
 
-##### file reading and sample ground truth #####
+##### file reading #####
 SAMPLE_PREFIX = "Capture_Sample_"
-
-SAMPLE_NUM_TO_WIDTH = {  # this is hardcoded, could be improved using csv files
-        1: 0.24,
-        2: 0.22,
-        3: 0.32,
-        4: 0.1,
-        5: 0.08,
-        6: 0.15,
-        7: 0.16,
-        8: 0.17,
-        9: 0.26,
-        10: 0.08,
-        11: 0.33,
-        12: 0.25,
-        13: 0.32,
-        14: 0.11,
-    }
-
 
 ##### setting calibration parameters #####
 SHAPE = (360, 480)
@@ -84,6 +66,18 @@ def get_data(sample_num, capture_num):
     conf_matrix = np.kron(conf_matrix, np.ones((scale_factor, scale_factor)))
     depth_matrix = np.kron(depth_matrix, np.ones((scale_factor, scale_factor)))
     return img_rgb, conf_matrix, depth_matrix
+
+# read file containing reference widths
+def get_widths(reference_file):
+    sample_num_to_width = {}
+    with open(reference_file) as fp: 
+        lines = fp.readlines() 
+        for i,line in enumerate(lines): 
+            parse = line.split(':')
+            if len(parse) != 2:
+                raise ValueError('Error reading reference file on line {}: [{}]'.format(i, line))
+            sample_num_to_width[int(parse[0])] = float(parse[1])
+    return sample_num_to_width
 
 
 def find_boundaries(img_rgbd, depth_matrix_filtered):
@@ -221,10 +215,20 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Process output of RGB+D Depth-Assisted Segmentation app')
     parser.add_argument('sample_path', type=str, help='path to sample directory')
+    parser.add_argument('reference_file', type=str, help=('Path to file containing reference widths for each sample number.\n'
+                                                          'File should be formatted as a newline-separate list of \n'
+                                                          'sample_num: width_in_meters\n'
+                                                          'eg:\n\n'
+                                                          '1: .45\n'
+                                                          '2: .26\n\n'
+                                                          'Note that the widths should be in meters and only the sample number is\n'
+                                                          'required. All captured images in a sample will use the same reference width.\n'
+                                                          ))
     parser.add_argument('result_path', type=str, help='path to directory in which to store results. this program will overwrite files currently in the results directory.')
     args = parser.parse_args()
     SAMPLE_PATH = args.sample_path
     RESULT_PATH = args.result_path
+    REFERENCE_FILE = args.reference_file
 
     sample_num_to_capture_num = {}  # for mapping samples to captures
 
@@ -242,6 +246,8 @@ if __name__ == "__main__":
             sample_num_to_capture_num[sample_num] = []
         sample_num_to_capture_num[sample_num].append(capture_num)
 
+    sample_num_to_width = get_widths(REFERENCE_FILE)
+
 
     out = pd.DataFrame(columns=[
         "sample_number",
@@ -254,11 +260,11 @@ if __name__ == "__main__":
         "percent_error",
         ])
     # run tests on samples
-    for sample_num in SAMPLE_NUM_TO_WIDTH:
+    for sample_num in sample_num_to_width:
         if sample_num in sample_num_to_capture_num:
             for capture_num in sample_num_to_capture_num[sample_num]:
                 print(sample_num, capture_num)
-                result_dict = run_sample(sample_num, capture_num, SAMPLE_NUM_TO_WIDTH[sample_num])
+                result_dict = run_sample(sample_num, capture_num, sample_num_to_width[sample_num])
                 out = out.append(result_dict, ignore_index=True)
 
     summary_path = os.path.join(RESULT_PATH, 'results.csv')
