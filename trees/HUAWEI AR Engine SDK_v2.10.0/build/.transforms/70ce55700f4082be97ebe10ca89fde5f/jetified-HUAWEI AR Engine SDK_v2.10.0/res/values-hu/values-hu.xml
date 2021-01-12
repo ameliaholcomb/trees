@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"MÉGSE"</string>
+    <string name="__arengine_install" priority="translator">"TELEPÍTÉS"</string>
+    <string name="__arengine_install_app" priority="translator">"A folytatáshoz telepítse fel a HUAWEI AR Engine legújabb verzióját."</string>
+    <string name="__arengine_set_wireless" priority="translator">"OK"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Nincs internetkapcsolat. Ellenőrizze a hálózati beállításokat."</string>
+</resources>

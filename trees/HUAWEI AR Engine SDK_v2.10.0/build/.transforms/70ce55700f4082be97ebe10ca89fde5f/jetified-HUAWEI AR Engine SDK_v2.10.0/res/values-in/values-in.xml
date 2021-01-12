@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"BATAL"</string>
+    <string name="__arengine_install" priority="translator">"PASANG"</string>
+    <string name="__arengine_install_app" priority="translator">"Pasang versi terbaru Mesin HUAWEI AR untuk melanjutkan."</string>
+    <string name="__arengine_set_wireless" priority="translator">"OK"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Tidak ada koneksi Internet. Periksa pengaturan jaringan Anda."</string>
+</resources>

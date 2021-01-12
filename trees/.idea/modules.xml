@@ -2,12 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/HUAWEI AR Engine SDK_v2.10.0/HUAWEI AR Engine SDK_v2.10.0.iml" filepath="$PROJECT_DIR$/HUAWEI AR Engine SDK_v2.10.0/HUAWEI AR Engine SDK_v2.10.0.iml" group="trees/HUAWEI AR Engine SDK_v2.10.0" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="trees/app" />
-      <module fileurl="file://$PROJECT_DIR$/trees.iml" filepath="$PROJECT_DIR$/trees.iml" group="trees" />
-      <module fileurl="file://$PROJECT_DIR$/HUAWEI AR Engine SDK_v2.10.0/trees-HUAWEI AR Engine SDK_v2.10.0.iml" filepath="$PROJECT_DIR$/HUAWEI AR Engine SDK_v2.10.0/trees-HUAWEI AR Engine SDK_v2.10.0.iml" group="trees/HUAWEI AR Engine SDK_v2.10.0" />
-      <module fileurl="file://$PROJECT_DIR$/app/trees-app.iml" filepath="$PROJECT_DIR$/app/trees-app.iml" group="trees/app" />
-      <module fileurl="file://$PROJECT_DIR$/trees-trees.iml" filepath="$PROJECT_DIR$/trees-trees.iml" group="trees" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/trees.iml" filepath="$PROJECT_DIR$/.idea/modules/trees.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/HUAWEI AR Engine SDK_v2.10.0/trees.HUAWEI_AR_Engine_SDK_v2.10.0.iml" filepath="$PROJECT_DIR$/.idea/modules/HUAWEI AR Engine SDK_v2.10.0/trees.HUAWEI_AR_Engine_SDK_v2.10.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/trees.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/trees.app.iml" />
     </modules>
   </component>
 </project>

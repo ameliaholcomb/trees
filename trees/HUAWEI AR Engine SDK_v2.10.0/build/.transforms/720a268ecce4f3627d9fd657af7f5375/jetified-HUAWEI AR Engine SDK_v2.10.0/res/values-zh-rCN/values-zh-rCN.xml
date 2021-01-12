@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel">取消</string>
+    <string name="__arengine_install">安装</string>
+    <string name="__arengine_install_app">您需安装最新版“华为 AR 引擎”才能使用</string>
+    <string name="__arengine_set_wireless">知道了</string>
+    <string name="__arengine_unknow_timeout">网络未连接，请检查网络设置</string>
+</resources>

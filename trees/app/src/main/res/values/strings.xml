@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
    Copyright 2018 Google Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,5 +14,6 @@
    limitations under the License.
 -->
 <resources>
-  <string name="app_name">Shared Camera Java</string>
+    <string name="app_name">Shared Camera Java</string>
+    <string name="title_activity_maps">Map</string>
 </resources>

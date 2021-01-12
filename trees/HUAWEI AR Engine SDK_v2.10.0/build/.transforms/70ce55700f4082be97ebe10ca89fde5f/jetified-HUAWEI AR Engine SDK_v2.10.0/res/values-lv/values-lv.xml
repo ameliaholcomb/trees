@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"ATCELT"</string>
+    <string name="__arengine_install" priority="translator">"INSTALĒT"</string>
+    <string name="__arengine_install_app" priority="translator">"Lai turpinātu, instalējiet jaunāko HUAWEI AR Engine versiju."</string>
+    <string name="__arengine_set_wireless" priority="translator">"Labi"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Nav interneta savienojuma. Pārbaudiet tīkla iestatījumus."</string>
+</resources>

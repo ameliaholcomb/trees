@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"取消"</string>
+    <string name="__arengine_install" priority="translator">"安裝"</string>
+    <string name="__arengine_install_app" priority="translator">"您需安裝最新版「華為 AR 引擎」方可使用"</string>
+    <string name="__arengine_set_wireless" priority="translator">"知道了"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"網絡未連線，請檢查網絡設定"</string>
+</resources>
