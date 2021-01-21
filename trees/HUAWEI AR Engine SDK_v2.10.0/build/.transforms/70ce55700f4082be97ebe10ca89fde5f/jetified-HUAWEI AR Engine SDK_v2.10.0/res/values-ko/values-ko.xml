@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"취소"</string>
+    <string name="__arengine_install" priority="translator">"설치"</string>
+    <string name="__arengine_install_app" priority="translator">"계속하려면 최신 버전의 HUAWEI AR Engine을 설치하십시오."</string>
+    <string name="__arengine_set_wireless" priority="translator">"확인"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"인터넷 연결 없음. 네트워크 설정을 확인하십시오."</string>
+</resources>

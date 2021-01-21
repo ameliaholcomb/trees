@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"ЦУЦЛАХ"</string>
+    <string name="__arengine_install" priority="translator">"СУУЛГАХ"</string>
+    <string name="__arengine_install_app" priority="translator">"HUAWEI AR Хөдөлгүүрийн хамгийн сүүлийн хувилбарыг суулгана уу."</string>
+    <string name="__arengine_set_wireless" priority="translator">"ОК"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Интернет холболт алга. Сүлжээний тохиргоогоо шалгана уу."</string>
+</resources>

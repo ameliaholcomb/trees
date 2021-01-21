@@ -16,10 +16,13 @@
 
 package com.google.ar.core.examples.java.sharedcamera;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -63,6 +66,7 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -92,6 +96,12 @@ public class SharedCameraActivity extends AppCompatActivity {
 
     // AR session
     private ARSession arSession = null;
+    private ARFrame arFrame = null;
+    private int imagePreviewResult;
+    private float[] projectionMatrix;
+    private float[] viewMatrix;
+    private Image imgRGB;
+    private ARImage imgTOF;
 
     // RenderUtil for rendering
     private RenderUtil renderUtil = null;
@@ -413,6 +423,14 @@ public class SharedCameraActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK) {
+            CAPTURE_IMAGE = true;
+        }
+    }
+
 
     private void requestedInstall() {
         AREnginesApk.ARInstallStatus installStatus = AREnginesApk.requestInstall(this, isRemindInstall);
@@ -430,6 +448,9 @@ public class SharedCameraActivity extends AppCompatActivity {
     // the image will be saved to a file.
     public void onCaptureImage(View view) {
         Log.i(LOG_TAG, "Capturing an image");
+        if(arFrame == null){
+            return;
+        }
 
         // Verify STORAGE_PERMISSION has been granted.
         if (!StoragePermissionHelper.hasStoragePermission(this)) {
@@ -438,7 +459,13 @@ public class SharedCameraActivity extends AppCompatActivity {
             return;
         }
 
-        CAPTURE_IMAGE = true;
+        imgRGB = arFrame.acquireCameraImage();
+        imgTOF = (ARImage) arFrame.acquireDepthImage();
+
+        Intent intent = new Intent(this, ImagePreviewActivity.class);
+        byte[] imageBytes = ImageUtil.imageToByteArray(imgRGB);
+        intent.putExtra("IMAGE_RGB", imageBytes);
+        startActivityForResult(intent, imagePreviewResult);
     }
 
 
@@ -447,89 +474,92 @@ public class SharedCameraActivity extends AppCompatActivity {
         if(arFrame == null){
             return;
         }
+        if(!CAPTURE_IMAGE) {
+            this.arFrame = arFrame;
+            this.projectionMatrix = projectionMatrix;
+            this.viewMatrix = viewMatrix;
+        }else {
+            Log.i(LOG_TAG, "Saving the image");
+            if (imgTOF != null) {
+                // Buffers for storing TOF output
+                ArrayList<Short> xBuffer = new ArrayList<>();
+                ArrayList<Short> yBuffer = new ArrayList<>();
+                ArrayList<Float> dBuffer = new ArrayList<>();
+                ArrayList<String> bBuffer = new ArrayList<>(); ///////////////////////////////////////
+                ArrayList<Float> percentageBuffer = new ArrayList<>();
 
-        Image imgRGB = arFrame.acquireCameraImage();
-        ARImage imgTOF = (ARImage) arFrame.acquireDepthImage();
+                ARImage.Plane plane = imgTOF.getPlanes()[0];
+                ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
 
-        if(imgTOF != null){
-            // Buffers for storing TOF output
-            ArrayList<Short> xBuffer = new ArrayList<>();
-            ArrayList<Short> yBuffer = new ArrayList<>();
-            ArrayList<Float> dBuffer = new ArrayList<>();
-            ArrayList<String> bBuffer = new ArrayList<>(); ///////////////////////////////////////
-            ArrayList<Float> percentageBuffer = new ArrayList<>();
+                int stride = plane.getRowStride();
+                int offset = 0;
+                float sum = 0.0f;
+                float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
+                for (short y = 0; y < imgTOF.getHeight(); y++) {
+                    for (short x = 0; x < imgTOF.getWidth(); x++) {
+                        // Parse the data. Format is [depth|confidence]
+                        int depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x) & 0xFFFF;
+                        depthSample = (((depthSample & 0xFF) << 8) & 0xFF00) | (((depthSample & 0xFF00) >> 8) & 0xFF);
+                        short depthSampleShort = (short) depthSample;
+                        short depthRange = (short) (depthSampleShort & 0x1FFF);
+                        short depthConfidence = (short) ((depthSampleShort >> 13) & 0x7);
+                        float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
 
-            ARImage.Plane plane = imgTOF.getPlanes()[0];
-            ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
+                        output[offset + x] = (float) depthRange / 10000;
 
-            int stride = plane.getRowStride();
-            int offset = 0;
-            float sum = 0.0f;
-            float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
-            for (short y = 0; y < imgTOF.getHeight(); y++) {
-                for (short x = 0; x < imgTOF.getWidth(); x++) {
-                    // Parse the data. Format is [depth|confidence]
-                    int depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x) & 0xFFFF;
-                    depthSample = (((depthSample & 0xFF) << 8) & 0xFF00) | (((depthSample & 0xFF00) >> 8) & 0xFF);
-                    short depthSampleShort = (short) depthSample;
-                    short depthRange = (short) (depthSampleShort & 0x1FFF);
-                    short depthConfidence = (short) ((depthSampleShort >> 13) & 0x7);
-                    float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
-
-                    output[offset + x] = (float)depthRange/10000;
-
-                    sum += output[offset+x];
-                    // Store data in buffer
-                    xBuffer.add(x);
-                    yBuffer.add(y);
-                    // bBuffer.add(String.format("%16s", Integer.toBinaryString(0xFFFF & depthSample)).replace(' ', '0')); ////////////////////////////
+                        sum += output[offset + x];
+                        // Store data in buffer
+                        xBuffer.add(x);
+                        yBuffer.add(y);
+                        // bBuffer.add(String.format("%16s", Integer.toBinaryString(0xFFFF & depthSample)).replace(' ', '0')); ////////////////////////////
 //                    System.out.print(depthRange + ",");
 //                    System.out.println(depthRange / 1000.0f);
 //                    System.out.println(depthRange + ",");
-                    dBuffer.add(depthRange / 1000.0f);
-                    percentageBuffer.add(depthPercentage);
+                        dBuffer.add(depthRange / 1000.0f);
+                        percentageBuffer.add(depthPercentage);
+                    }
+                    offset += imgTOF.getWidth();
                 }
-                offset += imgTOF.getWidth();
+
+                if (CAPTURE_IMAGE) {
+                    try {
+                        saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
+                        // saveToFileTOF2(xBuffer, yBuffer, bBuffer); ////////////////////////////////////////
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                imgTOF.close();
             }
 
-            if(CAPTURE_IMAGE){
-                try {
-                    saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
-                    // saveToFileTOF2(xBuffer, yBuffer, bBuffer); ////////////////////////////////////////
-                } catch (IOException e) {
-                    e.printStackTrace();
+            if (imgRGB != null) {
+                if (CAPTURE_IMAGE) {
+                    try {
+                        saveToFileRGB(imgRGB);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                imgRGB.close();
+            }
+
+            if (this.projectionMatrix != null && this.viewMatrix != null) {
+                if (CAPTURE_IMAGE) {
+                    try {
+                        saveToFileMatrix(this.projectionMatrix, this.viewMatrix);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 
-            imgTOF.close();
-        }
-
-        if(imgRGB != null ){
-            if(CAPTURE_IMAGE){
-                try {
-                    saveToFileRGB(imgRGB);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            if (CAPTURE_IMAGE) {
+                // Update the shared preferences for the number of captures
+                this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, this.getSharedPreferencesVar(SHARED_NUM_CAPTURES) + 1);
+                CAPTURE_IMAGE = false;
             }
-
-            imgRGB.close();
-        }
-
-        if(projectionMatrix != null && viewMatrix != null){
-            if(CAPTURE_IMAGE){
-                try {
-                    saveToFileMatrix(projectionMatrix, viewMatrix);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        if(CAPTURE_IMAGE){
-            // Update the shared preferences for the number of captures
-            this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, this.getSharedPreferencesVar(SHARED_NUM_CAPTURES) + 1);
-            CAPTURE_IMAGE = false;
         }
     }
 
@@ -781,7 +811,5 @@ public class SharedCameraActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-
 
 }
