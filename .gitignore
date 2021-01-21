@@ -55,3 +55,9 @@ gradle-app.setting
 
 # Cpp build files
 PclProcessing/build/*
+
+# ipynb checkpoints
+*/.ipynb_checkpoints*
+
+# local SDK info
+*/local.properties
