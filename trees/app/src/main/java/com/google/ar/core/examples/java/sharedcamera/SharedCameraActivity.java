@@ -110,8 +110,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     // DisplayRotationUtil as a rotation helper
     private DisplayRotationUtil displayRotationUtil = null;
 
-
-    private static final String LOG_TAG = "Connor";
+    private static final String LOG_TAG = "AMELIA";
 
     // GL Surface used to draw camera preview image.
     private GLSurfaceView surfaceView;
@@ -138,104 +137,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     // A check mechanism to ensure that the camera closed properly so that the app can safely exit.
     private final ConditionVariable safeToExitApp = new ConditionVariable();
 
-    // Globals to keep track of phone location. Rotation is continuously updated and position can
-    // be re-initialized to (0,0,0) on button press. Note that rotation is a quaternion.
-    private float[] rotation;
-    private float[] position;
-    private float[] velocity;
-    private float[] acceleration;
-    private boolean firstPosition = true;
-    private long lastMeasure;
-    private int accSign[];
-    private int prevSign[];
-    private int root[];
 
-    //     Conversion factor NS to S
-    static final float NS2S = 1.0f / 1000000000.0f;
-
-    SensorEventListener eventListener = new SensorEventListener() {
-
-        // Detect sensor events
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
-                // Update the position of the phone from the current.
-                updatePositionFromLinearAcceleration(event);
-            } else if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-                // Update the rotation of the phone from the current.
-                updateRotationFromRotationVector(event);
-            } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                updatePositionFromLinearAcceleration(event);
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-            // TODO: deal with any accuracy changes in the sensor.
-        }
-    };
-
-    private void updatePositionFromLinearAcceleration(SensorEvent event) {
-        float[] acc = event.values;
-
-        // Round the accelerations to 1 decimal places (qualitatively chosen to reduce noise)
-        for (int i = 0; i < 3; i++) {
-            acc[i] = Math.round(acc[i] * 10.0f) / 10.0f;
-            accSign[i] = (int) Math.signum(acc[i]);
-        }
-
-        // Check for a sign change
-        for (int i = 0; i < 3; i++) {
-            if (accSign[i] == -1 && prevSign[i] == 1) {
-                root[i] = -1;
-            } else if (accSign[i] == 1 && prevSign[i] == -1) {
-                root[i] = 1;
-            }
-        }
-
-        // If there has been a sign change from positive to negative, and we are at a point with 0 acceleration, set
-        // velocity component to 0.
-        for (int i = 0; i < 3; i++) {
-            if (acc[i] == 0) {
-                velocity[i] = 0.0f;
-            }
-        }
-
-        // If this is not the first position measurement
-        if (!firstPosition) {
-
-            float dt = (event.timestamp - lastMeasure) * NS2S;
-
-            // Update the position if the acceleration for this component reaches the threshold
-            for (int i = 0; i < 3; i++) {
-                velocity[i] += ((acc[i] + acceleration[i]) / 2) * dt;
-//                velocity[i] += ((acc[i]) / 2) * dt;
-                position[i] += velocity[i] * dt;
-            }
-        } else {
-            firstPosition = false;
-        }
-
-        // Shallow copy acceleration to global variable
-        System.arraycopy(acc, 0, acceleration, 0, 3);
-
-        // Copy the sign of the current acceleration
-        System.arraycopy(accSign, 0, prevSign, 0, 3);
-
-        // Update the time of last update
-        lastMeasure = event.timestamp;
-
-    }
-
-    private void updateRotationFromRotationVector(SensorEvent event) {
-        rotation = event.values;
-//        Log.i(LOG_TAG, "Rotation update!");
-//        Log.i(LOG_TAG, Arrays.toString(rotation));
-    }
-
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-//        Log.i(LOG_TAG, "Sensor accuracy is " + accuracy);
-    }
 
     // Helpers for shared memory
     private int getSharedPreferencesVar(String name) {
@@ -247,20 +149,6 @@ public class SharedCameraActivity extends AppCompatActivity {
         editor.putInt(name, val);
         editor.commit();
     }
-
-
-    // Classes for managing the sensors
-    private SensorManager sensorManager;
-    // Acceleration units m/s^2
-    private Sensor linearAccelerationSensor;
-    // Rotation sensor
-    private Sensor rotationSensor;
-
-    // Threads and handlers for sensor listeners
-    HandlerThread accelerationThread;
-    Handler accelerationHandler;
-    HandlerThread rotationThread;
-    Handler rotationHandler;
 
 
     @Override
@@ -287,35 +175,6 @@ public class SharedCameraActivity extends AppCompatActivity {
         surfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
 
-        // Initialize position and velocity to (0,0,0)
-        position = new float[] {0, 0, 0};
-        velocity = new float[] {0, 0, 0};
-        acceleration = new float[] {0, 0, 0};
-        firstPosition = true;
-        accSign = new int[] {1, 1, 1};
-        prevSign = new int[] {1, 1, 1};
-        root = new int[] {0, 0, 0};
-
-        // Create threads and handlers for sensors
-        accelerationThread = new HandlerThread("accelerationThread");
-        accelerationThread.start();
-        accelerationHandler = new Handler(accelerationThread.getLooper());
-
-        rotationThread = new HandlerThread("rotationThread");
-        rotationThread.start();
-        rotationHandler = new Handler(rotationThread.getLooper());
-
-        // Set the linear acceleration sensor.
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        linearAccelerationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        sensorManager.registerListener(eventListener, linearAccelerationSensor, SensorManager.SENSOR_DELAY_NORMAL, accelerationHandler);
-
-        // Set the rotation vector sensor.
-        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        sensorManager.registerListener(eventListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL, accelerationHandler);
-
-
-        // TODO: Get the gyroscope
         context = getApplicationContext();
         preferences = context.getSharedPreferences(PREFERENCES, context.MODE_PRIVATE);
 
@@ -511,10 +370,6 @@ public class SharedCameraActivity extends AppCompatActivity {
                         // Store data in buffer
                         xBuffer.add(x);
                         yBuffer.add(y);
-                        // bBuffer.add(String.format("%16s", Integer.toBinaryString(0xFFFF & depthSample)).replace(' ', '0')); ////////////////////////////
-//                    System.out.print(depthRange + ",");
-//                    System.out.println(depthRange / 1000.0f);
-//                    System.out.println(depthRange + ",");
                         dBuffer.add(depthRange / 1000.0f);
                         percentageBuffer.add(depthPercentage);
                     }
@@ -524,7 +379,6 @@ public class SharedCameraActivity extends AppCompatActivity {
                 if (CAPTURE_IMAGE) {
                     try {
                         saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
-                        // saveToFileTOF2(xBuffer, yBuffer, bBuffer); ////////////////////////////////////////
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -689,47 +543,6 @@ public class SharedCameraActivity extends AppCompatActivity {
                 str.append(',');
                 str.append(percentageBuffer.get(i));
                 str.append('\n');
-            }
-            writer.write(str.toString());
-            writer.flush();
-            Log.i(LOG_TAG, "Successfully wrote the file " + sampleFName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void saveToFileTOF2(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
-                              ArrayList<String> bBuffer) throws IOException {
-        // Open the output file for this sample
-        // As recommended by:
-        // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
-        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures);
-
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
-        File dir = new File(this.fileSaveDir, "/samples");
-        Log.i(LOG_TAG, dir.getAbsolutePath());
-
-        File outFile = new File(dir, sampleFName);
-        if(!outFile.getParentFile().exists()) {
-            outFile.getParentFile().mkdirs();
-        }
-
-        // Write to the output file
-        try (FileWriter writer = new FileWriter(outFile)) {
-            StringBuilder str = new StringBuilder();
-
-            for (int i = 0; i < bBuffer.size(); i++) {
-                str.append(xBuffer.get(i));
-                str.append(',');
-                str.append(yBuffer.get(i));
-                str.append(',');
-                str.append(bBuffer.get(i));
-                str.append('\n');
-                System.out.println(bBuffer.get(i));
             }
             writer.write(str.toString());
             writer.flush();
