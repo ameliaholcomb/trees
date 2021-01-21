@@ -20,7 +20,7 @@ from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
                                  denoise_wavelet, estimate_sigma)
 from skimage.transform import rescale, resize
 from scipy.ndimage.interpolation import rotate
-from sklearn.decomposition.pca import PCA
+from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from scipy.spatial import ConvexHull
 from scipy.stats import mode
@@ -81,7 +81,7 @@ def get_widths(reference_file):
 
 
 def find_boundaries(img_rgbd, depth_matrix_filtered):
-    angle = get_rotate_angle(depth_matrix_filtered[:,CENTER_BOUNDS[0]:CENTER_BOUNDS[1]])
+    angle = get_rotate_angle(img_rgbd[:,CENTER_BOUNDS[0]:CENTER_BOUNDS[1],:])
 
     depth_matrix_filtered_center_mask = (depth_matrix_filtered[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]] > 0) * 1
     depth_matrix_filtered_center_mask_rotated = rotate(depth_matrix_filtered_center_mask, angle)
@@ -104,7 +104,7 @@ def find_boundaries(img_rgbd, depth_matrix_filtered):
 
 # rotates the matrix to vertical based on binary encoding
 def get_rotate_angle(matrix):
-    x = np.array(np.where(matrix > 0)).T
+    x = np.array(np.where(matrix[:,:,3] > 0)).T
     # Perform a PCA and compute the angle of the first principal axes
     pca = PCA(n_components=2).fit(x)
     angle = np.arctan2(*pca.components_[0])
@@ -115,7 +115,6 @@ def get_rotate_angle(matrix):
         angle_2 = angle + 90
         return angle_1 if abs(angle_1) <= abs(angle_2) else angle_2
     return angle + 180
-
 
 # calculate the final width
 def get_estimated_width(depth, pixels, angle):
@@ -137,7 +136,11 @@ def run_sample(sample_num, capture_num, width):
     if np.sum(center_depths) == 0:
         print(colored("Unable to process sample {}_{}, no depth values found".format(sample_num, capture_num), "red"))
         return
-    mode_depth = mode(center_depths[center_depths != 0], axis=None).mode[0]
+    # Sensor range gives us a maximum of 5 meters away,
+    # For now we'll try 3cm resolution
+    bins = np.arange(0.0, 5.0, 0.03)
+    digitized_center_depths = np.digitize(center_depths[center_depths != 0], bins)
+    mode_depth = bins[mode(digitized_center_depths, axis=None).mode[0]]
 
     # zero out depth values that are not within 10% of the mode center depth
     depth_approx = 0.1 * mode_depth
@@ -161,7 +164,7 @@ def run_sample(sample_num, capture_num, width):
 
     ###### CREATE FIGURE OF RESULTS #########
     # mask out the invalid entries
-    mask = np.logical_or(depth_matrix == 0, depth_matrix == 0.0)
+    mask = np.logical_or(np.logical_or(depth_matrix == 0, depth_matrix == 0.0), depth_matrix > 6.0)
     fig = plt.figure(0,(15,15))
 
     ax = fig.add_subplot(221)
