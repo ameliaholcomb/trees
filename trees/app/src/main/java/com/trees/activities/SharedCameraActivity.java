@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.trees.sharedcamera;
+package com.trees.activities;
 
 import android.app.Activity;
 import android.content.Context;
@@ -35,6 +35,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.trees.common.helpers.CameraPermissionHelper;
 import com.trees.common.helpers.ImageStoreHelper;
+import com.trees.common.helpers.ImageUtil;
 import com.trees.common.helpers.StoragePermissionHelper;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
@@ -105,6 +106,11 @@ public class SharedCameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Get permission to access the camera
+        if (!CameraPermissionHelper.hasCameraPermission(this)) {
+            CameraPermissionHelper.requestCameraPermission(this);
+        }
 
         Bundle extraBundle = getIntent().getExtras();
         if (extraBundle != null && 1 == extraBundle.getShort(AUTOMATOR_KEY, AUTOMATOR_DEFAULT)) {

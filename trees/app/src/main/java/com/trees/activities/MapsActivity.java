@@ -1,4 +1,4 @@
-package com.trees.sharedcamera;
+package com.trees.activities;
 
 import android.Manifest;
 import android.content.Context;

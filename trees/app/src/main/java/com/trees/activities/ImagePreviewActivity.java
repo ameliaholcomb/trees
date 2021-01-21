@@ -1,4 +1,4 @@
-package com.trees.sharedcamera;
+package com.trees.activities;
 
 import android.app.Activity;
 import android.content.Intent;

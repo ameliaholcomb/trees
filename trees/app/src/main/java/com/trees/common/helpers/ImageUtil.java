@@ -1,4 +1,4 @@
-package com.trees.sharedcamera;
+package com.trees.common.helpers;
 
 import android.graphics.ImageFormat;
 import android.graphics.Rect;

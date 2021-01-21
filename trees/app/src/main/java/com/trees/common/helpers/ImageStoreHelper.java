@@ -5,8 +5,6 @@ import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.util.Log;
 
-import com.trees.sharedcamera.ImageUtil;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;

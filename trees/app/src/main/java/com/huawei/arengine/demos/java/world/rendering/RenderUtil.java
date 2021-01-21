@@ -13,7 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import com.trees.sharedcamera.SharedCameraActivity;
+import com.trees.activities.SharedCameraActivity;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextureRenderUtil;
