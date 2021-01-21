@@ -1,4 +1,4 @@
-package com.google.ar.core.examples.java.common.helpers;
+package com.trees.common.helpers;
 
 import android.Manifest;
 import android.app.Activity;

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.ar.core.examples.java.common.helpers;
+package com.trees.common.helpers;
 
 import android.Manifest;
 import android.app.Activity;
@@ -24,30 +24,30 @@ import android.provider.Settings;
 /**
  * Helper to ask camera permission.
  */
-public final class CameraPermissionHelper {
-    private static final int CAMERA_PERMISSION_CODE = 0;
-    private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
+public final class StoragePermissionHelper {
+    private static final int STORAGE_PERMISSION_CODE = 1;
+    private static final String STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
     /**
      * Check to see we have the necessary permissions for this app.
      */
-    public static boolean hasCameraPermission(Activity activity) {
-        return activity.checkSelfPermission(CAMERA_PERMISSION)
+    public static boolean hasStoragePermission(Activity activity) {
+        return activity.checkSelfPermission(STORAGE_PERMISSION)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
     /**
      * Check to see we have the necessary permissions for this app, and ask for them if we don't.
      */
-    public static void requestCameraPermission(Activity activity) {
-        activity.requestPermissions(new String[]{CAMERA_PERMISSION}, CAMERA_PERMISSION_CODE);
+    public static void requestStoragePermission(Activity activity) {
+        activity.requestPermissions(new String[]{STORAGE_PERMISSION}, STORAGE_PERMISSION_CODE);
     }
 
     /**
      * Check to see if we need to show the rationale for this permission.
      */
     public static boolean shouldShowRequestPermissionRationale(Activity activity) {
-        return activity.shouldShowRequestPermissionRationale(CAMERA_PERMISSION);
+        return activity.shouldShowRequestPermissionRationale(STORAGE_PERMISSION);
     }
 
     /**

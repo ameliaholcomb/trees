@@ -17,7 +17,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.google.ar.core.examples.java.sharedcamera.SharedCameraActivity">
+    tools:context="com.google.ar.core.examples.trees.sharedcamera.SharedCameraActivity">
 
 
     <android.opengl.GLSurfaceView
@@ -84,7 +84,7 @@
             android:layout_width="150dp"
             android:layout_height="75dp"
             android:onClick="onCaptureImage"
-            android:text="Shoot" />
+            android:text="Capture" />
 
     </RelativeLayout>
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.ar.core.examples.java.sharedcamera;
+package com.trees.sharedcamera;
 
 import android.app.Activity;
 import android.content.Context;
@@ -35,8 +35,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
-import com.google.ar.core.examples.java.common.helpers.StoragePermissionHelper;
+import com.trees.common.helpers.CameraPermissionHelper;
+import com.trees.common.helpers.StoragePermissionHelper;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.hiar.AREnginesApk;

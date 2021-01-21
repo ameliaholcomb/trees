@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.google.ar.core.examples.java.sharedcamera">
+    package="com.trees.sharedcamera">
     <!--
          The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
          Google Maps Android API v2, but you must specify either coarse or fine
@@ -36,7 +36,7 @@
         android:usesCleartextTraffic="false"
         tools:ignore="GoogleAppIndexingWarning"
         tools:targetApi="q">
-        <activity android:name=".ImagePreviewActivity"
+        <activity android:name="com.trees.sharedcamera.ImagePreviewActivity"
             android:screenOrientation="landscape"></activity>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
@@ -51,12 +51,12 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name=".MapsActivity"
+            android:name="com.trees.sharedcamera.MapsActivity"
             android:label="@string/title_activity_maps"
             android:screenOrientation="landscape">
         </activity>
         <activity
-            android:name=".SharedCameraActivity"
+            android:name="com.trees.sharedcamera.SharedCameraActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:launchMode="singleTask"

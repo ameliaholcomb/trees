@@ -1,4 +1,4 @@
-package com.google.ar.core.examples.java.sharedcamera;
+package com.trees.sharedcamera;
 
 import android.graphics.ImageFormat;
 import android.graphics.Rect;

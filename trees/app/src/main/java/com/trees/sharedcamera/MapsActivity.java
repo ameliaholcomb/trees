@@ -1,4 +1,4 @@
-package com.google.ar.core.examples.java.sharedcamera;
+package com.trees.sharedcamera;
 
 import android.Manifest;
 import android.content.Context;
@@ -21,7 +21,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.ar.core.examples.java.common.helpers.LocationPermissionHelper;
+import com.trees.common.helpers.LocationPermissionHelper;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
 

@@ -1,4 +1,4 @@
-package com.google.ar.core.examples.java.sharedcamera;
+package com.trees.sharedcamera;
 
 import android.app.Activity;
 import android.content.Intent;
