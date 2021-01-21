@@ -21,32 +21,42 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
 
-/** Helper to ask camera permission. */
+/**
+ * Helper to ask camera permission.
+ */
 public final class CameraPermissionHelper {
-  private static final int CAMERA_PERMISSION_CODE = 0;
-  private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
+    private static final int CAMERA_PERMISSION_CODE = 0;
+    private static final String CAMERA_PERMISSION = Manifest.permission.CAMERA;
 
-  /** Check to see we have the necessary permissions for this app. */
-  public static boolean hasCameraPermission(Activity activity) {
-    return activity.checkSelfPermission(CAMERA_PERMISSION)
-        == PackageManager.PERMISSION_GRANTED;
-  }
+    /**
+     * Check to see we have the necessary permissions for this app.
+     */
+    public static boolean hasCameraPermission(Activity activity) {
+        return activity.checkSelfPermission(CAMERA_PERMISSION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
 
-  /** Check to see we have the necessary permissions for this app, and ask for them if we don't. */
-  public static void requestCameraPermission(Activity activity) {
-    activity.requestPermissions(new String[] {CAMERA_PERMISSION}, CAMERA_PERMISSION_CODE);
-  }
+    /**
+     * Check to see we have the necessary permissions for this app, and ask for them if we don't.
+     */
+    public static void requestCameraPermission(Activity activity) {
+        activity.requestPermissions(new String[]{CAMERA_PERMISSION}, CAMERA_PERMISSION_CODE);
+    }
 
-  /** Check to see if we need to show the rationale for this permission. */
-  public static boolean shouldShowRequestPermissionRationale(Activity activity) {
-    return activity.shouldShowRequestPermissionRationale(CAMERA_PERMISSION);
-  }
+    /**
+     * Check to see if we need to show the rationale for this permission.
+     */
+    public static boolean shouldShowRequestPermissionRationale(Activity activity) {
+        return activity.shouldShowRequestPermissionRationale(CAMERA_PERMISSION);
+    }
 
-  /** Launch Application Setting to grant permission. */
-  public static void launchPermissionSettings(Activity activity) {
-    Intent intent = new Intent();
-    intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-    intent.setData(Uri.fromParts("package", activity.getPackageName(), null));
-    activity.startActivity(intent);
-  }
+    /**
+     * Launch Application Setting to grant permission.
+     */
+    public static void launchPermissionSettings(Activity activity) {
+        Intent intent = new Intent();
+        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(Uri.fromParts("package", activity.getPackageName(), null));
+        activity.startActivity(intent);
+    }
 }

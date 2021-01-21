@@ -22,26 +22,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureRequest;
 import android.media.Image;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.ConditionVariable;
-import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
-import android.util.SizeF;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -49,14 +35,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.ar.core.Session;
-import com.google.ar.core.SharedCamera;
 import com.google.ar.core.examples.java.common.helpers.CameraPermissionHelper;
 import com.google.ar.core.examples.java.common.helpers.StoragePermissionHelper;
-import com.google.ar.core.examples.java.common.helpers.DisplayRotationHelper;
-import com.google.ar.core.examples.java.common.rendering.BackgroundRenderer;
-import com.google.ar.core.examples.java.common.rendering.OcclusionRenderer;
-import com.google.ar.sceneform.ux.ArFragment;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.hiar.AREnginesApk;
@@ -66,34 +46,39 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.RoundingMode;
-import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class SharedCameraActivity extends AppCompatActivity {
     private static final String TAG = SharedCameraActivity.class.getSimpleName();
-
+    private static final String SAMPLE_NUM_ID = "sampleNum";
+    private static final String DELETE_BUTTON_ID = "deleteButton";
+    private static final String LOG_TAG = "AMELIA";
+    // Required for test run.
+    private static final Short AUTOMATOR_DEFAULT = 0;
+    private static final String AUTOMATOR_KEY = "automator";
+    private static final String PREFERENCES = "stateInfo";
+    private static final String SHARED_NUM_CAPTURES = "numCaptures";
+    private static final String SHARED_CURRENT_SAMPLE = "currentSample";
+    // Whether to save the next available image to a file
+    static boolean CAPTURE_IMAGE = false;
+    private final AtomicBoolean automatorRun = new AtomicBoolean(false);
+    // A check mechanism to ensure that the camera closed properly so that the app can safely exit.
+    private final ConditionVariable safeToExitApp = new ConditionVariable();
+    // Preferences object and associated file
+    SharedPreferences preferences;
     // path for storing data
     private String fileSaveDir =
             android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
-
-    private static final String SAMPLE_NUM_ID = "sampleNum";
-    private static final String DELETE_BUTTON_ID = "deleteButton";
-
-    // Whether to save the next available image to a file
-    static boolean CAPTURE_IMAGE = false;
-
     // AR session
     private ARSession arSession = null;
     private ARFrame arFrame = null;
@@ -102,42 +87,17 @@ public class SharedCameraActivity extends AppCompatActivity {
     private float[] viewMatrix;
     private Image imgRGB;
     private ARImage imgTOF;
-
     // RenderUtil for rendering
     private RenderUtil renderUtil = null;
     private boolean isRemindInstall = true;
-
     // DisplayRotationUtil as a rotation helper
     private DisplayRotationUtil displayRotationUtil = null;
-
-    private static final String LOG_TAG = "AMELIA";
-
     // GL Surface used to draw camera preview image.
     private GLSurfaceView surfaceView;
-
-
     // Looper handler thread.
     private HandlerThread backgroundThread;
-
-    // Required for test run.
-    private static final Short AUTOMATOR_DEFAULT = 0;
-    private static final String AUTOMATOR_KEY = "automator";
-    private final AtomicBoolean automatorRun = new AtomicBoolean(false);
-
-
     // App context, to be assigned in onCreate
     private Context context;
-
-    // Preferences object and associated file
-    SharedPreferences preferences;
-    private static final String PREFERENCES = "stateInfo";
-    private static final String SHARED_NUM_CAPTURES = "numCaptures";
-    private static final String SHARED_CURRENT_SAMPLE = "currentSample";
-
-    // A check mechanism to ensure that the camera closed properly so that the app can safely exit.
-    private final ConditionVariable safeToExitApp = new ConditionVariable();
-
-
 
     // Helpers for shared memory
     private int getSharedPreferencesVar(String name) {
@@ -176,7 +136,7 @@ public class SharedCameraActivity extends AppCompatActivity {
 
 
         context = getApplicationContext();
-        preferences = context.getSharedPreferences(PREFERENCES, context.MODE_PRIVATE);
+        preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
 
 
         // Ensure that our persistent variables are set properly
@@ -293,7 +253,7 @@ public class SharedCameraActivity extends AppCompatActivity {
 
     private void requestedInstall() {
         AREnginesApk.ARInstallStatus installStatus = AREnginesApk.requestInstall(this, isRemindInstall);
-        switch(installStatus) {
+        switch (installStatus) {
             case INSTALL_REQUESTED:
                 isRemindInstall = false;
                 break;
@@ -307,7 +267,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     // the image will be saved to a file.
     public void onCaptureImage(View view) {
         Log.i(LOG_TAG, "Capturing an image");
-        if(arFrame == null){
+        if (arFrame == null) {
             return;
         }
 
@@ -329,22 +289,21 @@ public class SharedCameraActivity extends AppCompatActivity {
 
 
     // extract RGB and TOF image from the given arFrame
-    public void extractImageData(ARFrame arFrame, float[] projectionMatrix,  float[] viewMatrix) {
-        if(arFrame == null){
+    public void extractImageData(ARFrame arFrame, float[] projectionMatrix, float[] viewMatrix) {
+        if (arFrame == null) {
             return;
         }
-        if(!CAPTURE_IMAGE) {
+        if (!CAPTURE_IMAGE) {
             this.arFrame = arFrame;
             this.projectionMatrix = projectionMatrix;
             this.viewMatrix = viewMatrix;
-        }else {
+        } else {
             Log.i(LOG_TAG, "Saving the image");
             if (imgTOF != null) {
                 // Buffers for storing TOF output
                 ArrayList<Short> xBuffer = new ArrayList<>();
                 ArrayList<Short> yBuffer = new ArrayList<>();
                 ArrayList<Float> dBuffer = new ArrayList<>();
-                ArrayList<String> bBuffer = new ArrayList<>(); ///////////////////////////////////////
                 ArrayList<Float> percentageBuffer = new ArrayList<>();
 
                 ARImage.Plane plane = imgTOF.getPlanes()[0];
@@ -479,7 +438,7 @@ public class SharedCameraActivity extends AppCompatActivity {
         // Don't allow the sample number get less than 0
         if (currentSample - 1 == 0) {
             currentSample--;
-            Log.i(LOG_TAG , "Enabling delete");
+            Log.i(LOG_TAG, "Enabling delete");
             this.enableDeleteButton();
         } else if (currentSample - 1 > 0) {
             currentSample--;
@@ -499,7 +458,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     public void onDeleteData(View view) {
         // File object for the directory where the data is saved.
         File savedDir = new File(this.fileSaveDir + "/samples");
-        if(!savedDir.exists()){
+        if (!savedDir.exists()) {
             return;
         }
 
@@ -526,7 +485,7 @@ public class SharedCameraActivity extends AppCompatActivity {
         Log.i(LOG_TAG, dir.getAbsolutePath());
 
         File outFile = new File(dir, sampleFName);
-        if(!outFile.getParentFile().exists()) {
+        if (!outFile.getParentFile().exists()) {
             outFile.getParentFile().mkdirs();
         }
 
@@ -564,7 +523,7 @@ public class SharedCameraActivity extends AppCompatActivity {
         Log.i(LOG_TAG, dir.getAbsolutePath());
 
         File outFile = new File(dir, sampleFName);
-        if(!outFile.getParentFile().exists()) {
+        if (!outFile.getParentFile().exists()) {
             outFile.getParentFile().mkdirs();
         }
 
@@ -582,7 +541,7 @@ public class SharedCameraActivity extends AppCompatActivity {
     }
 
 
-    public void saveToFileMatrix(float[] projectionMatrix,  float[] viewMatrix) throws IOException {
+    public void saveToFileMatrix(float[] projectionMatrix, float[] viewMatrix) throws IOException {
         int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
         int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
         String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures) + ".txt";
@@ -594,7 +553,7 @@ public class SharedCameraActivity extends AppCompatActivity {
         Log.i(LOG_TAG, dir.getAbsolutePath());
 
         File outFile = new File(dir, sampleFName);
-        if(!outFile.getParentFile().exists()) {
+        if (!outFile.getParentFile().exists()) {
             outFile.getParentFile().mkdirs();
         }
 
@@ -602,16 +561,16 @@ public class SharedCameraActivity extends AppCompatActivity {
             DecimalFormat df = new DecimalFormat("#.##########");
             df.setRoundingMode(RoundingMode.CEILING);
             PrintWriter out = new PrintWriter(outFile);
-            for (int i = 0; i < projectionMatrix.length; i++){
-                if(i != 0){
+            for (int i = 0; i < projectionMatrix.length; i++) {
+                if (i != 0) {
                     out.printf(", ");
                 }
                 out.printf(df.format(projectionMatrix[i]));
             }
             out.printf("\n");
 
-            for (int i = 0; i < viewMatrix.length; i++){
-                if(i != 0){
+            for (int i = 0; i < viewMatrix.length; i++) {
+                if (i != 0) {
                     out.printf(", ");
                 }
                 out.printf(df.format(viewMatrix[i]));
