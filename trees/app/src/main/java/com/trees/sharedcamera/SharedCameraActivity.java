@@ -20,8 +20,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -36,6 +34,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.trees.common.helpers.CameraPermissionHelper;
+import com.trees.common.helpers.ImageStoreHelper;
 import com.trees.common.helpers.StoragePermissionHelper;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
@@ -46,14 +45,8 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.math.RoundingMode;
 import java.nio.ShortBuffer;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -76,9 +69,6 @@ public class SharedCameraActivity extends AppCompatActivity {
     private final ConditionVariable safeToExitApp = new ConditionVariable();
     // Preferences object and associated file
     SharedPreferences preferences;
-    // path for storing data
-    private String fileSaveDir =
-            android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
     // AR session
     private ARSession arSession = null;
     private ARFrame arFrame = null;
@@ -137,7 +127,6 @@ public class SharedCameraActivity extends AppCompatActivity {
 
         context = getApplicationContext();
         preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
-
 
         // Ensure that our persistent variables are set properly
         final int DEF = Integer.MIN_VALUE;
@@ -337,7 +326,10 @@ public class SharedCameraActivity extends AppCompatActivity {
 
                 if (CAPTURE_IMAGE) {
                     try {
-                        saveToFileTOF(xBuffer, yBuffer, dBuffer, percentageBuffer);
+                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+                        ImageStoreHelper.saveToFileTOF(
+                                sampleNumber, captureNumber, xBuffer, yBuffer, dBuffer, percentageBuffer);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -349,7 +341,9 @@ public class SharedCameraActivity extends AppCompatActivity {
             if (imgRGB != null) {
                 if (CAPTURE_IMAGE) {
                     try {
-                        saveToFileRGB(imgRGB);
+                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+                        ImageStoreHelper.saveToFileRGB(sampleNumber, captureNumber, imgRGB);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -361,7 +355,10 @@ public class SharedCameraActivity extends AppCompatActivity {
             if (this.projectionMatrix != null && this.viewMatrix != null) {
                 if (CAPTURE_IMAGE) {
                     try {
-                        saveToFileMatrix(this.projectionMatrix, this.viewMatrix);
+                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+                        ImageStoreHelper.saveToFileMatrix(sampleNumber, captureNumber,
+                        this.projectionMatrix, this.viewMatrix);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -376,26 +373,6 @@ public class SharedCameraActivity extends AppCompatActivity {
         }
     }
 
-
-    // Enable the button to delete all files
-    private void enableDeleteButton() {
-        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
-        Log.i("delete id", Integer.toString(deleteId));
-        View view = findViewById(deleteId);
-        view.setVisibility(View.VISIBLE);
-        view.setEnabled(true);
-    }
-
-
-    private void disableDeleteButton() {
-        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
-        View view = findViewById(deleteId);
-
-        if (view.getVisibility() == View.VISIBLE) {
-            view.setVisibility(View.GONE);
-            view.setEnabled(false);
-        }
-    }
 
 
     // Plus button to change the sample being read
@@ -453,135 +430,29 @@ public class SharedCameraActivity extends AppCompatActivity {
         sampleNum.setText(Integer.toString(currentSample));
     }
 
+    // Enable the button to delete all files
+    private void enableDeleteButton() {
+        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
+        Log.i("delete id", Integer.toString(deleteId));
+        View view = findViewById(deleteId);
+        view.setVisibility(View.VISIBLE);
+        view.setEnabled(true);
+    }
+
+
+    private void disableDeleteButton() {
+        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
+        View view = findViewById(deleteId);
+
+        if (view.getVisibility() == View.VISIBLE) {
+            view.setVisibility(View.GONE);
+            view.setEnabled(false);
+        }
+    }
 
     // Method for deleting data
     public void onDeleteData(View view) {
-        // File object for the directory where the data is saved.
-        File savedDir = new File(this.fileSaveDir + "/samples");
-        if (!savedDir.exists()) {
-            return;
-        }
-
-        // Clean up the directory
-        for (File file : savedDir.listFiles()) {
-            file.delete();
-        }
-    }
-
-
-    public void saveToFileTOF(ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
-                              ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
-        // Open the output file for this sample
-        // As recommended by:
-        // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
-        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures);
-
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
-        File dir = new File(this.fileSaveDir, "/samples");
-        Log.i(LOG_TAG, dir.getAbsolutePath());
-
-        File outFile = new File(dir, sampleFName);
-        if (!outFile.getParentFile().exists()) {
-            outFile.getParentFile().mkdirs();
-        }
-
-        // Write to the output file
-        try (FileWriter writer = new FileWriter(outFile)) {
-            StringBuilder str = new StringBuilder();
-
-            for (int i = 0; i < dBuffer.size(); i++) {
-                str.append(xBuffer.get(i));
-                str.append(',');
-                str.append(yBuffer.get(i));
-                str.append(',');
-                str.append(dBuffer.get(i));
-                str.append(',');
-                str.append(percentageBuffer.get(i));
-                str.append('\n');
-            }
-            writer.write(str.toString());
-            writer.flush();
-            Log.i(LOG_TAG, "Successfully wrote the file " + sampleFName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void saveToFileRGB(Image image) throws IOException {
-        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures) + ".jpeg";
-
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
-        File dir = new File(this.fileSaveDir, "/samples");
-        Log.i(LOG_TAG, dir.getAbsolutePath());
-
-        File outFile = new File(dir, sampleFName);
-        if (!outFile.getParentFile().exists()) {
-            outFile.getParentFile().mkdirs();
-        }
-
-        byte[] imageBytes = ImageUtil.imageToByteArray(image);
-
-        Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-        try {
-            FileOutputStream out = new FileOutputStream(outFile);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public void saveToFileMatrix(float[] projectionMatrix, float[] viewMatrix) throws IOException {
-        int currentSample = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-        int numCaptures = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-        String sampleFName = "Capture_Sample_" + currentSample + "_" + (numCaptures) + ".txt";
-
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
-        File dir = new File(this.fileSaveDir, "/samples");
-        Log.i(LOG_TAG, dir.getAbsolutePath());
-
-        File outFile = new File(dir, sampleFName);
-        if (!outFile.getParentFile().exists()) {
-            outFile.getParentFile().mkdirs();
-        }
-
-        try {
-            DecimalFormat df = new DecimalFormat("#.##########");
-            df.setRoundingMode(RoundingMode.CEILING);
-            PrintWriter out = new PrintWriter(outFile);
-            for (int i = 0; i < projectionMatrix.length; i++) {
-                if (i != 0) {
-                    out.printf(", ");
-                }
-                out.printf(df.format(projectionMatrix[i]));
-            }
-            out.printf("\n");
-
-            for (int i = 0; i < viewMatrix.length; i++) {
-                if (i != 0) {
-                    out.printf(", ");
-                }
-                out.printf(df.format(viewMatrix[i]));
-            }
-            out.printf("\n");
-            out.close();
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        ImageStoreHelper.deleteFiles();
     }
 
 }
