@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"OTKAŽI"</string>
+    <string name="__arengine_install" priority="translator">"INSTALIRAJ"</string>
+    <string name="__arengine_install_app" priority="translator">"Instalirajte najnoviju verziju HUAWEI AR tehnologije da biste nastavili."</string>
+    <string name="__arengine_set_wireless" priority="translator">"U redu"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Nema internet veze. Proverite mrežna podešavanja."</string>
+</resources>

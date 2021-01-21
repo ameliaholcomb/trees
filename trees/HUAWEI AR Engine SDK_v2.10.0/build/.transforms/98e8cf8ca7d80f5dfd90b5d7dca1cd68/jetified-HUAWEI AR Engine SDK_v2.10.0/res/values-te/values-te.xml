@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"రద్దు"</string>
+    <string name="__arengine_install" priority="translator">"ఇన్‌స్టాల్ చేయి"</string>
+    <string name="__arengine_install_app" priority="translator">"కొనసాగేందుకు HUAWEI AR ఇంజిన్ యొక్క తాజా వెర్షన్‌ని ఇన్‌స్టాల్ చేయండి."</string>
+    <string name="__arengine_set_wireless" priority="translator">"సరి"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"ఇంటర్నెట్ కనెక్షన్ లేదు. మీ నెట్‌వర్క్ సెట్టింగ్‌లను తనిఖీ చేయండి."</string>
+</resources>

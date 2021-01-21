@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"LƏĞV EDİN"</string>
+    <string name="__arengine_install" priority="translator">"QURAŞDIRIN"</string>
+    <string name="__arengine_install_app" priority="translator">"Davam etmək üçün HUAWEI AR Mexanizminin ən sonuncu versiyasını quraşdırın."</string>
+    <string name="__arengine_set_wireless" priority="translator">"OK"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"İnternet bağlantısı yoxdur. Şəbəkə parametrlərinizi yoxlayın."</string>
+</resources>

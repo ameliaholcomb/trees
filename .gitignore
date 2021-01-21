@@ -60,4 +60,4 @@ PclProcessing/build/*
 */.ipynb_checkpoints*
 
 # local SDK info
-*/local.properties
+trees/local.properties

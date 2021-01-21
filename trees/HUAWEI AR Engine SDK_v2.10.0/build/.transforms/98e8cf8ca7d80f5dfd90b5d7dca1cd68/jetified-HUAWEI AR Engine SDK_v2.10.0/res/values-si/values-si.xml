@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"අවලංගු කරන්න"</string>
+    <string name="__arengine_install" priority="translator">"ස්ථාපනය කරන්න"</string>
+    <string name="__arengine_install_app" priority="translator">"ඉදිරියට යාමට HUAWEI AR Engine හි නවතම අනුවාදය ස්ථාපනය කරන්න."</string>
+    <string name="__arengine_set_wireless" priority="translator">"හරි"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"අන්තර්ජාල සම්බන්ධතාව නැත. ඔබේ ජාල සැකසුම් පරීක්ෂා කරන්න."</string>
+</resources>

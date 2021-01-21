@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"BEKOR QILISH"</string>
+    <string name="__arengine_install" priority="translator">"OʻRNATISH"</string>
+    <string name="__arengine_install_app" priority="translator">"Davom etishdan oldin HUAWEI AR Engine vositasining eng yangi versiyasini oʻrnating."</string>
+    <string name="__arengine_set_wireless" priority="translator">"OK"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Internetga ulanmagansiz. Tarmoq sozlamalarini tekshiring."</string>
+</resources>

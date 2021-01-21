@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: artifacts:HUAWEI AR Engine SDK_v2.10.0:unspecified@jar">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../HUAWEI AR Engine SDK_v2.10.0/build/.transforms/98e8cf8ca7d80f5dfd90b5d7dca1cd68/jetified-HUAWEI AR Engine SDK_v2.10.0/AndroidManifest.xml" />
+      <root url="jar://$PROJECT_DIR$/../HUAWEI AR Engine SDK_v2.10.0/build/.transforms/98e8cf8ca7d80f5dfd90b5d7dca1cd68/jetified-HUAWEI AR Engine SDK_v2.10.0/jars/classes.jar!/" />
+      <root url="file://$PROJECT_DIR$/../HUAWEI AR Engine SDK_v2.10.0/build/.transforms/98e8cf8ca7d80f5dfd90b5d7dca1cd68/jetified-HUAWEI AR Engine SDK_v2.10.0/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

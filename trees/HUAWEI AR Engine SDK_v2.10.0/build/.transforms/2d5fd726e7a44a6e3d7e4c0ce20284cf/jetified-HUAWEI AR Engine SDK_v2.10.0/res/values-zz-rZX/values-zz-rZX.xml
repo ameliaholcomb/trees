@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel">[PL_494158]_CANCEL</string>
+    <string name="__arengine_install">[PL_494161]_INSTALL</string>
+    <string name="__arengine_install_app">[PL_494162]_Install the latest version of HUAWEI AR Engine to continue.</string>
+    <string name="__arengine_set_wireless">[PL_494160]_OK</string>
+    <string name="__arengine_unknow_timeout">[PL_494159]_No Internet connection. Check your network settings.</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"ANNULER"</string>
+    <string name="__arengine_install" priority="translator">"INSTALLER"</string>
+    <string name="__arengine_install_app" priority="translator">"Le moteur de réalité virtuelle Huawei doit être installé pour pouvoir continuer. Installer ?"</string>
+    <string name="__arengine_set_wireless" priority="translator">"OK"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"Aucune connexion Internet. Veuillez vérifier les paramètres réseau."</string>
+</resources>

@@ -1,0 +1,12 @@
+{
+  "grs_server": {
+    "grs_base_url": [
+      "https://grs.hicloud.com",
+      "https://grs.dbankcloud.eu",
+      "https://grs.dbankcloud.asia",
+      "https://grs.dbankcloud.com"
+    ],
+    "grs_query_endpoint": "/grs/1.0/arenginesdk/router",
+    "grs_query_timeout": 0
+  }
+}

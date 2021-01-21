@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="__arengine_cancel" priority="translator">"ይቅር"</string>
+    <string name="__arengine_install" priority="translator">"ጫን"</string>
+    <string name="__arengine_install_app" priority="translator">"ለመቀጠል የቅርብ ጊዜውን የHUAWEI AR Engine ስሪት ይጫኑ።"</string>
+    <string name="__arengine_set_wireless" priority="translator">"እሺ"</string>
+    <string name="__arengine_unknow_timeout" priority="translator">"ምንም የበይነመረብ ግንኙነት የለም። የአውታረ መረብ ቅንብሮችዎን ይፈትሹ።"</string>
+</resources>
