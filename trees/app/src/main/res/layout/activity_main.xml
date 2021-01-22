@@ -17,8 +17,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.google.ar.core.examples.trees.sharedcamera.SharedCameraActivity">
+    tools:context="com.trees.activities.SharedCameraActivity">
 
+
+    <com.trees.common.rendering.DrawingView
+        android:id="@+id/drawingsurface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </com.trees.common.rendering.DrawingView>
 
     <android.opengl.GLSurfaceView
         android:id="@+id/glsurfaceview"

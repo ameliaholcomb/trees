@@ -63,27 +63,24 @@ public class ImageStoreHelper {
     }
 
     public static void saveToFileTOF(
-            Integer sampleNumber, Integer captureNumber,
-            ArrayList<Short> xBuffer, ArrayList<Short> yBuffer,
-            ArrayList<Float> dBuffer, ArrayList<Float> percentageBuffer) throws IOException {
+            Integer sampleNumber, Integer captureNumber, TofBuffers buffers) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.TOF);
         File outFile = getOrCreateFile(filename);
-        // Write the TOF data currently in buffers to an output file.
         Log.i(LOG_TAG, "Writing to the file");
 
         // Write to the output file
         try (FileWriter writer = new FileWriter(outFile)) {
             StringBuilder str = new StringBuilder();
 
-            for (int i = 0; i < dBuffer.size(); i++) {
-                str.append(xBuffer.get(i));
+            for (int i = 0; i < buffers.dBuffer.size(); i++) {
+                str.append(buffers.xBuffer.get(i));
                 str.append(',');
-                str.append(yBuffer.get(i));
+                str.append(buffers.yBuffer.get(i));
                 str.append(',');
-                str.append(dBuffer.get(i));
+                str.append(buffers.dBuffer.get(i));
                 str.append(',');
-                str.append(percentageBuffer.get(i));
+                str.append(buffers.percentageBuffer.get(i));
                 str.append('\n');
             }
             writer.write(str.toString());

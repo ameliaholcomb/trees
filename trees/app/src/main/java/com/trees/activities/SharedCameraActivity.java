@@ -20,12 +20,15 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.ConditionVariable;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -45,6 +48,11 @@ import com.huawei.hiar.ARImage;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
+import com.trees.common.helpers.TofBuffers;
+import com.trees.common.helpers.TofUtil;
+import com.trees.common.jni.DiameterComputation;
+import com.trees.common.jni.ImageProcessor;
+import com.trees.common.rendering.DrawingView;
 
 import java.io.IOException;
 import java.nio.ShortBuffer;
@@ -85,6 +93,8 @@ public class SharedCameraActivity extends AppCompatActivity {
     private DisplayRotationUtil displayRotationUtil = null;
     // GL Surface used to draw camera preview image.
     private GLSurfaceView surfaceView;
+    // SurfaceView to draw simpler objects
+    private DrawingView drawingView;
     // Looper handler thread.
     private HandlerThread backgroundThread;
     // App context, to be assigned in onCreate
@@ -130,6 +140,9 @@ public class SharedCameraActivity extends AppCompatActivity {
         surfaceView.setRenderer(renderUtil);
         surfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
+        // Transparent overlay for drawing on the GL camera preview
+        drawingView = (DrawingView) findViewById(R.id.drawingsurface);
+        drawingView.setZOrderOnTop(true);
 
         context = getApplicationContext();
         preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
@@ -258,23 +271,20 @@ public class SharedCameraActivity extends AppCompatActivity {
     }
 
 
-    // onCaptureImage sets captureImage to true, so that next time extractImage is called,
-    // the image will be saved to a file.
+    // Captures an image.
+    // TODO: Run algorithm on image
+    // TODO: Display output in a static preview
+    // TODO: Offer user the opportunity to save the image if desired
     public void onCaptureImage(View view) {
         Log.i(LOG_TAG, "Capturing an image");
         if (arFrame == null) {
             return;
         }
 
-        // Verify STORAGE_PERMISSION has been granted.
-        if (!StoragePermissionHelper.hasStoragePermission(this)) {
-            StoragePermissionHelper.requestStoragePermission(this);
-            Log.i(LOG_TAG, "We don't have storage permission!");
-            return;
-        }
-
         imgRGB = arFrame.acquireCameraImage();
         imgTOF = (ARImage) arFrame.acquireDepthImage();
+
+        // DiameterComputation comp = new ImageProcessor().JavaComputeDiameter(imgRGB, imgTOF);
 
         Intent intent = new Intent(this, ImagePreviewActivity.class);
         byte[] imageBytes = ImageUtil.imageToByteArray(imgRGB);
@@ -295,47 +305,14 @@ public class SharedCameraActivity extends AppCompatActivity {
         } else {
             Log.i(LOG_TAG, "Saving the image");
             if (imgTOF != null) {
-                // Buffers for storing TOF output
-                ArrayList<Short> xBuffer = new ArrayList<>();
-                ArrayList<Short> yBuffer = new ArrayList<>();
-                ArrayList<Float> dBuffer = new ArrayList<>();
-                ArrayList<Float> percentageBuffer = new ArrayList<>();
-
-                ARImage.Plane plane = imgTOF.getPlanes()[0];
-                ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
-
-                int stride = plane.getRowStride();
-                int offset = 0;
-                float sum = 0.0f;
-                float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
-                for (short y = 0; y < imgTOF.getHeight(); y++) {
-                    for (short x = 0; x < imgTOF.getWidth(); x++) {
-                        // Parse the data. Format is [depth|confidence]
-                        int depthSample = shortDepthBuffer.get((int) (y / 2) * stride + x) & 0xFFFF;
-                        depthSample = (((depthSample & 0xFF) << 8) & 0xFF00) | (((depthSample & 0xFF00) >> 8) & 0xFF);
-                        short depthSampleShort = (short) depthSample;
-                        short depthRange = (short) (depthSampleShort & 0x1FFF);
-                        short depthConfidence = (short) ((depthSampleShort >> 13) & 0x7);
-                        float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
-
-                        output[offset + x] = (float) depthRange / 10000;
-
-                        sum += output[offset + x];
-                        // Store data in buffer
-                        xBuffer.add(x);
-                        yBuffer.add(y);
-                        dBuffer.add(depthRange / 1000.0f);
-                        percentageBuffer.add(depthPercentage);
-                    }
-                    offset += imgTOF.getWidth();
-                }
+                TofBuffers buffers = TofUtil.TofToBuffers(imgTOF);
 
                 if (CAPTURE_IMAGE) {
                     try {
                         Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
                         Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
                         ImageStoreHelper.saveToFileTOF(
-                                sampleNumber, captureNumber, xBuffer, yBuffer, dBuffer, percentageBuffer);
+                                sampleNumber, captureNumber, buffers);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
