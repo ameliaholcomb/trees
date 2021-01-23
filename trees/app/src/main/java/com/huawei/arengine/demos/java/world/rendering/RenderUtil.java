@@ -43,6 +43,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
     private static final float MATRIX_SCALE_SY = -1.0f;
 
     private ARSession mSession;
+    public ARFrame frame;
 
     private ImageCaptureActivity mActivity;
 
@@ -141,6 +142,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         try {
             mSession.setCameraTextureName(mTextureRenderUtil.getExternalTextureId());
             ARFrame arFrame = mSession.update();
+            frame = arFrame;
             ARCamera arCamera = arFrame.getCamera();
             // ARCameraConfig arCameraConfig = mSession.getCameraConfig();
             mTextureRenderUtil.onDrawFrame(arFrame);

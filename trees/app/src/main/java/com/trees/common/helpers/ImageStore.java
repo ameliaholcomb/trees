@@ -1,8 +1,6 @@
 package com.trees.common.helpers;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.util.Log;
 
 import java.io.File;
@@ -14,7 +12,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-public class ImageStore {
+public class ImageStore implements ImageStoreInterface {
     private static final String LOG_TAG = "AMELIA";
     private enum Filetype {
             TOF,
@@ -90,20 +88,15 @@ public class ImageStore {
     }
 
     public void saveToFileRGB(
-            Integer sampleNumber, Integer captureNumber, Image image) throws IOException {
+            Integer sampleNumber, Integer captureNumber, Bitmap image) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.JPEG);
         File outFile = getOrCreateFile(filename);
 
-        // Write the TOF data currently in buffers to an output file.
-        Log.i(LOG_TAG, "Writing to the file");
-
-        byte[] imageBytes = ImageUtil.imageToByteArray(image);
-
-        Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+//        Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
         try {
             FileOutputStream out = new FileOutputStream(outFile);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            image.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.flush();
             out.close();
         } catch (Exception e) {

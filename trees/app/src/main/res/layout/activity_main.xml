@@ -20,19 +20,18 @@
     tools:context="com.trees.activities.ImageCaptureActivity">
 
 
-    <com.trees.common.rendering.DrawingView
-        android:id="@+id/drawingsurface"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    </com.trees.common.rendering.DrawingView>
-
     <android.opengl.GLSurfaceView
         android:id="@+id/glsurfaceview"
         android:layout_width="match_parent"
         android:layout_height="374dp"
         android:layout_gravity="top" />
 
+    <com.trees.common.rendering.DrawingView
+        android:id="@+id/drawingsurface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </com.trees.common.rendering.DrawingView>
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -94,6 +93,14 @@
             android:text="Capture" />
 
     </RelativeLayout>
+    <androidx.fragment.app.FragmentContainerView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/fragment_container_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".CaptureConfirmationFragment">
+
+    </androidx.fragment.app.FragmentContainerView>
 
 
 </RelativeLayout>

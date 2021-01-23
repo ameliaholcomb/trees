@@ -36,7 +36,7 @@
         android:usesCleartextTraffic="false"
         tools:ignore="GoogleAppIndexingWarning"
         tools:targetApi="q">
-        <activity android:name="com.trees.activities.ImagePreviewActivity"
+        <activity android:name="com.trees.activities.CaptureConfirmationFragment"
             android:screenOrientation="landscape"></activity>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
