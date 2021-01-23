@@ -20,15 +20,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.ConditionVariable;
 import android.os.HandlerThread;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -36,10 +33,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.huawei.hiar.ARCamera;
 import com.trees.common.helpers.CameraPermissionHelper;
-import com.trees.common.helpers.ImageStoreHelper;
+import com.trees.common.helpers.ImageStore;
 import com.trees.common.helpers.ImageUtil;
-import com.trees.common.helpers.StoragePermissionHelper;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.hiar.AREnginesApk;
@@ -48,20 +45,16 @@ import com.huawei.hiar.ARImage;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
-import com.trees.common.helpers.TofBuffers;
 import com.trees.common.helpers.TofUtil;
 import com.trees.common.jni.DiameterComputation;
 import com.trees.common.jni.ImageProcessor;
 import com.trees.common.rendering.DrawingView;
 
-import java.io.IOException;
-import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class SharedCameraActivity extends AppCompatActivity {
-    private static final String TAG = SharedCameraActivity.class.getSimpleName();
+public class ImageCaptureActivity extends AppCompatActivity {
+    private static final String TAG = ImageCaptureActivity.class.getSimpleName();
     private static final String SAMPLE_NUM_ID = "sampleNum";
     private static final String DELETE_BUTTON_ID = "deleteButton";
     private static final String LOG_TAG = "AMELIA";
@@ -71,8 +64,10 @@ public class SharedCameraActivity extends AppCompatActivity {
     private static final String PREFERENCES = "stateInfo";
     private static final String SHARED_NUM_CAPTURES = "numCaptures";
     private static final String SHARED_CURRENT_SAMPLE = "currentSample";
-    // Whether to save the next available image to a file
-    static boolean CAPTURE_IMAGE = false;
+    // Projection matrix constants
+    private static final int PROJ_MATRIX_OFFSET = 0;
+    private static final float PROJ_MATRIX_NEAR = 0.1f;
+    private static final float PROJ_MATRIX_FAR = 100.0f;
     private final AtomicBoolean automatorRun = new AtomicBoolean(false);
     // A check mechanism to ensure that the camera closed properly so that the app can safely exit.
     private final ConditionVariable safeToExitApp = new ConditionVariable();
@@ -253,9 +248,6 @@ public class SharedCameraActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK) {
-            CAPTURE_IMAGE = true;
-        }
     }
 
 
@@ -271,91 +263,50 @@ public class SharedCameraActivity extends AppCompatActivity {
     }
 
 
-    // Captures an image.
-    // TODO: Run algorithm on image
-    // TODO: Display output in a static preview
-    // TODO: Offer user the opportunity to save the image if desired
     public void onCaptureImage(View view) {
         Log.i(LOG_TAG, "Capturing an image");
         if (arFrame == null) {
             return;
         }
 
+        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
+        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
+
+        // Acquire ToF, RGB, and projection matrices
+        ARFrame arFrame = arSession.update();
         imgRGB = arFrame.acquireCameraImage();
         imgTOF = (ARImage) arFrame.acquireDepthImage();
 
-        // DiameterComputation comp = new ImageProcessor().JavaComputeDiameter(imgRGB, imgTOF);
+//        float[] projectionMatrix = new float[16];  /* 4 x 4 */
+//        float[] viewMatrix = new float[16];        /* 4 x 4 */
+//        ARCamera arCamera = arFrame.getCamera();
+//        arCamera.getProjectionMatrix(projectionMatrix, PROJ_MATRIX_OFFSET, PROJ_MATRIX_NEAR, PROJ_MATRIX_FAR);
+//        arCamera.getViewMatrix(viewMatrix, 0);
+//
+//        // Convert TOF and RGB images to format passable through intents and JNI layer
+//        byte[] rgbBytes = ImageUtil.imageToByteArray(imgRGB);
+//        float[] depthArray = TofUtil.TofToFloatArray(imgTOF);
+//
+//        // Perform native diameter computation and save Parcelable results
+//        // TODO: Implement native computation
+//        DiameterComputation comp = new ImageProcessor().JavaComputeDiameter(rgbBytes, depthArray, confArray);
+//
+//        // Pass images, matrices, and diameter computation through to the ImagePreviewActivity
+//        Intent intent = new Intent(this, ImagePreviewActivity.class);
+//        intent.putExtra("SAMPLE_NUM", sampleNumber);
+//        intent.putExtra("CAPTURE_NUM", captureNumber);
+//        intent.putExtra("IMAGE_DEPTH", depthArray);
+//        intent.putExtra("IMAGE_RGB", rgbBytes);
+//        intent.putExtra("IMAGE_DEPTH", depthArray);
+//        intent.putExtra("IMAGE_CONF", confArray);
+//        intent.putExtra("PROJ_MATRIX", projectionMatrix);
+//        intent.putExtra("VIEW_MATRIX", viewMatrix);
+//        intent.putExtra("DIAMETER_COMP", comp);
+//        startActivityForResult(intent, imagePreviewResult);
 
-        Intent intent = new Intent(this, ImagePreviewActivity.class);
-        byte[] imageBytes = ImageUtil.imageToByteArray(imgRGB);
-        intent.putExtra("IMAGE_RGB", imageBytes);
-        startActivityForResult(intent, imagePreviewResult);
+        // Update capture number
+        this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, this.getSharedPreferencesVar(SHARED_NUM_CAPTURES) + 1);
     }
-
-
-    // extract RGB and TOF image from the given arFrame
-    public void extractImageData(ARFrame arFrame, float[] projectionMatrix, float[] viewMatrix) {
-        if (arFrame == null) {
-            return;
-        }
-        if (!CAPTURE_IMAGE) {
-            this.arFrame = arFrame;
-            this.projectionMatrix = projectionMatrix;
-            this.viewMatrix = viewMatrix;
-        } else {
-            Log.i(LOG_TAG, "Saving the image");
-            if (imgTOF != null) {
-                TofBuffers buffers = TofUtil.TofToBuffers(imgTOF);
-
-                if (CAPTURE_IMAGE) {
-                    try {
-                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-                        ImageStoreHelper.saveToFileTOF(
-                                sampleNumber, captureNumber, buffers);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                imgTOF.close();
-            }
-
-            if (imgRGB != null) {
-                if (CAPTURE_IMAGE) {
-                    try {
-                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-                        ImageStoreHelper.saveToFileRGB(sampleNumber, captureNumber, imgRGB);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                imgRGB.close();
-            }
-
-            if (this.projectionMatrix != null && this.viewMatrix != null) {
-                if (CAPTURE_IMAGE) {
-                    try {
-                        Integer sampleNumber = this.getSharedPreferencesVar(SHARED_CURRENT_SAMPLE);
-                        Integer captureNumber = this.getSharedPreferencesVar(SHARED_NUM_CAPTURES);
-                        ImageStoreHelper.saveToFileMatrix(sampleNumber, captureNumber,
-                        this.projectionMatrix, this.viewMatrix);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            if (CAPTURE_IMAGE) {
-                // Update the shared preferences for the number of captures
-                this.setSharedPreferencesVar(SHARED_NUM_CAPTURES, this.getSharedPreferencesVar(SHARED_NUM_CAPTURES) + 1);
-                CAPTURE_IMAGE = false;
-            }
-        }
-    }
-
 
 
     // Plus button to change the sample being read
@@ -435,7 +386,8 @@ public class SharedCameraActivity extends AppCompatActivity {
 
     // Method for deleting data
     public void onDeleteData(View view) {
-        ImageStoreHelper.deleteFiles();
+        ImageStore imageStore = new ImageStore();
+        imageStore.deleteFiles();
     }
 
 }

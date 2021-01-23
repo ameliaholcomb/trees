@@ -12,7 +12,11 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.trees.common.jni.ImageProcessor;
+
+
 public class DrawingView extends SurfaceView implements SurfaceHolder.Callback {
+
 
     public DrawingView(Context context, AttributeSet attrs) {
         super(context, attrs);

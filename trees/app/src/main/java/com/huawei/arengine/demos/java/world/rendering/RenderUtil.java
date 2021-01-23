@@ -13,7 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import com.trees.activities.SharedCameraActivity;
+import com.trees.activities.ImageCaptureActivity;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextureRenderUtil;
@@ -37,11 +37,6 @@ import javax.microedition.khronos.opengles.GL10;
 public class RenderUtil implements GLSurfaceView.Renderer {
     private static final String TAG = RenderUtil.class.getSimpleName();
 
-    private static final int PROJ_MATRIX_OFFSET = 0;
-
-    private static final float PROJ_MATRIX_NEAR = 0.1f;
-
-    private static final float PROJ_MATRIX_FAR = 100.0f;
 
     private static final float MATRIX_SCALE_SX = -1.0f;
 
@@ -49,7 +44,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
 
     private ARSession mSession;
 
-    private SharedCameraActivity mActivity;
+    private ImageCaptureActivity mActivity;
 
     private Context mContext;
 
@@ -76,7 +71,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
      * @param activity Activity
      * @param context Context
      */
-    public RenderUtil(SharedCameraActivity activity, Context context) {
+    public RenderUtil(ImageCaptureActivity activity, Context context) {
         mActivity = activity;
         mContext = context;
     }
@@ -150,18 +145,10 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             // ARCameraConfig arCameraConfig = mSession.getCameraConfig();
             mTextureRenderUtil.onDrawFrame(arFrame);
 
-            // The size of projection matrix is 4 * 4.
-            float[] projectionMatrix = new float[16];
-            // Obtain the projection matrix of AR camera.
-            arCamera.getProjectionMatrix(projectionMatrix, PROJ_MATRIX_OFFSET, PROJ_MATRIX_NEAR, PROJ_MATRIX_FAR);
-
             StringBuilder sb = new StringBuilder();
             updateMessageData(sb);
             mTextDisplayUtil.onDrawFrame(sb);
 
-            // The size of view matrix is 4 * 4.
-            float[] viewMatrix = new float[16];
-            arCamera.getViewMatrix(viewMatrix, 0);
 
             for (ARPlane plane : mSession.getAllTrackables(ARPlane.class)) {
                 if (plane.getType() != ARPlane.PlaneType.UNKNOWN_FACING
@@ -175,36 +162,6 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             if (lightEstimate.getState() != ARLightEstimate.State.NOT_VALID) {
                 lightPixelIntensity = lightEstimate.getPixelIntensity();
             };
-
-            mActivity.extractImageData(arFrame, projectionMatrix, viewMatrix);
-
-//            System.out.println("///////////////////////////////////////////////////////");
-//            for(int i = 0; i < 4; i++){
-//                for(int j = 0; j < 4; j++){
-//                    System.out.print(viewMatrix[4 * i + j] + ", ");
-//                }
-//                System.out.println();
-//            }
-//            Image imgRGB = arFrame.acquireCameraImage();
-//            Image imgTOF = arFrame.acquireDepthImage();
-//            float w = imgTOF.getWidth();
-//            float h = imgTOF.getHeight();
-//            Size s = arCameraConfig.getImageDimensions();
-//            System.out.println("img.w: " + w);
-//            System.out.println("img.h: " + h);
-//            System.out.println("camera.w: " + s.getWidth());
-//            System.out.println("camera.h: " + s.getHeight());
-//
-//            float cx = Math.abs(w * (1.0f - projectionMatrix[2 * 4 + 0]) / 2.0f);
-//            float cy = Math.abs(h * (1.0f - projectionMatrix[2 * 4 + 1]) / 2.0f);
-//            float fx = Math.abs(w * projectionMatrix[0 * 4 + 0] / 2.0f);
-//            float fy = Math.abs(h * projectionMatrix[1 * 4 + 1] / 2.0f);
-//            System.out.println("cx: " + cx);
-//            System.out.println("cy: " + cy);
-//            System.out.println("fx: " + fx);
-//            System.out.println("fy: " + fy);
-//            System.out.println("///////////////////////////////////////////////////////");
-
 
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.

@@ -56,7 +56,7 @@
             android:screenOrientation="landscape">
         </activity>
         <activity
-            android:name="com.trees.activities.SharedCameraActivity"
+            android:name="com.trees.activities.ImageCaptureActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:launchMode="singleTask"
@@ -68,7 +68,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- <activity android:name=".SharedCameraActivity" -->
+        </activity> <!-- <activity android:name=".ImageCaptureActivity" -->
         <!-- android:configChanges="orientation|screenSize" -->
         <!-- android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" -->
         <!-- android:launchMode="singleTask" -->

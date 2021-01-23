@@ -7,8 +7,6 @@ import android.media.Image;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-
-
 /*
 
 An image utility class for converting images from different format to byte array for saving

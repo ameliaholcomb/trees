@@ -83,7 +83,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             public boolean onMarkerClick(Marker marker) {
-                Intent intent = new Intent(getApplicationContext(), SharedCameraActivity.class);
+                Intent intent = new Intent(getApplicationContext(), ImageCaptureActivity.class);
                 startActivity(intent);
                 return false;
             }

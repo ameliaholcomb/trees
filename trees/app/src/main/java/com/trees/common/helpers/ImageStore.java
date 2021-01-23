@@ -14,7 +14,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-public class ImageStoreHelper {
+public class ImageStore {
     private static final String LOG_TAG = "AMELIA";
     private enum Filetype {
             TOF,
@@ -22,16 +22,14 @@ public class ImageStoreHelper {
             MATRIX,
     }
     // path for storing data
-    private static String filepath =
+    private String filepath =
             android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
-    private static final String FOLDER = "/samples";
-    private static final String PREFIX = "Capture_Sample_";
+    private final String FOLDER = "/samples";
+    private final String PREFIX = "Capture_Sample_";
 
+    public ImageStore() { }
 
-    private static File getOrCreateFile(String filename) {
-        // Open the output file
-        // As recommended by:
-        // https://stackoverflow.com/questions/44587187/android-how-to-write-a-file-to-internal-storage
+    private File getOrCreateFile(String filename) {
         File dir = new File(filepath, FOLDER);
         Log.i(LOG_TAG, dir.getAbsolutePath());
 
@@ -42,7 +40,7 @@ public class ImageStoreHelper {
         return outFile;
     }
 
-    private static String getFileName(Integer sample_num, Integer capture_num, Filetype ftype) {
+    private String getFileName(Integer sample_num, Integer capture_num, Filetype ftype) {
         String suffix;
         switch (ftype) {
             case TOF:
@@ -62,7 +60,7 @@ public class ImageStoreHelper {
 
     }
 
-    public static void saveToFileTOF(
+    public void saveToFileTOF(
             Integer sampleNumber, Integer captureNumber, TofBuffers buffers) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.TOF);
@@ -91,7 +89,7 @@ public class ImageStoreHelper {
         }
     }
 
-    public static void saveToFileRGB(
+    public void saveToFileRGB(
             Integer sampleNumber, Integer captureNumber, Image image) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.JPEG);
@@ -114,7 +112,7 @@ public class ImageStoreHelper {
     }
 
 
-    public static void saveToFileMatrix(
+    public void saveToFileMatrix(
             Integer sampleNumber, Integer captureNumber,
             float[] projectionMatrix, float[] viewMatrix) throws IOException {
 
@@ -151,7 +149,7 @@ public class ImageStoreHelper {
     }
 
 
-    public static void deleteFiles() {
+    public void deleteFiles() {
         // File object for the directory where the data is saved.
         File dir = new File(filepath, FOLDER);
         if (!dir.exists()) {
