@@ -2,7 +2,6 @@ package com.trees.common.helpers;
 
 import com.huawei.hiar.ARImage;
 
-import org.opencv.core.Mat;
 
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
