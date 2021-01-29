@@ -5,6 +5,7 @@ import android.media.Image;
 
 import com.huawei.hiar.ARImage;
 
+@FunctionalInterface
 public interface ImageProcessorInterface {
 
     /* Java class containing results of image computation.

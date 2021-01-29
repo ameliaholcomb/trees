@@ -46,7 +46,9 @@ import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 import com.trees.common.helpers.ImageStoreInterface;
 import com.trees.common.jni.FakeImageProcessor;
+import com.trees.common.jni.ImageProcessor;
 import com.trees.common.jni.ImageProcessorInterface;
+import com.trees.common.jni.JavaImageProcessor;
 import com.trees.common.rendering.DrawingView;
 import com.trees.model.ImageViewModel;
 import com.trees.model.ImageViewModelFactory;
@@ -89,7 +91,8 @@ public class ImageCaptureActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ImageProcessorInterface imageProcessor = new FakeImageProcessor();
+        // TODO: Deal with this in a way Evan approves of
+        ImageProcessorInterface imageProcessor = new JavaImageProcessor();
         ImageStoreInterface imageStore = new ImageStore();
         ImageViewModelFactory imageViewModelFactory = new ImageViewModelFactory(imageProcessor, imageStore);
         imageModel = new ViewModelProvider(this, imageViewModelFactory).get(ImageViewModel.class);

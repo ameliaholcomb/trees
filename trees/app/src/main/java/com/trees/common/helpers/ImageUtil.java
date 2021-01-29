@@ -5,8 +5,15 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
 
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+
+import static org.opencv.core.CvType.CV_8UC1;
+import static org.opencv.imgproc.Imgproc.cvtColor;
 /*
 
 An image utility class for converting images from different format to byte array for saving
@@ -95,5 +102,22 @@ public class ImageUtil {
         YuvImage yuv = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
         yuv.compressToJpeg(new Rect(0, 0, width, height), 100, out);
         return out.toByteArray();
+    }
+
+    private static byte[] NV21toMat(byte[] nv21, int width, int height) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        YuvImage yuv = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
+        yuv.compressToJpeg(new Rect(0, 0, width, height), 100, out);
+        return out.toByteArray();
+    }
+
+    // Convert Image to OpenCV Mat
+    public static Mat imageToMat(Image image) {
+        byte[] data = YUV_420_888toNV21(image);
+        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CV_8UC1);
+        mYuv.put(0, 0, data);
+        Mat mRGB = new Mat();
+        cvtColor(mYuv, mRGB, Imgproc.COLOR_YUV2RGB_NV21, 3);
+        return mRGB;
     }
 }

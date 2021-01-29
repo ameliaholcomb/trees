@@ -9,9 +9,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+
+import androidx.annotation.RequiresApi;
 
 import com.trees.activities.ImageCaptureActivity;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;

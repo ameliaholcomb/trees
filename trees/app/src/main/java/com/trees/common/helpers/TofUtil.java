@@ -2,6 +2,9 @@ package com.trees.common.helpers;
 
 import com.huawei.hiar.ARImage;
 
+import org.opencv.core.Mat;
+
+import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 
@@ -14,6 +17,7 @@ public class TofUtil {
 
         ARImage.Plane plane = imgTOF.getPlanes()[0];
         ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
+        buffers.dByteBuffer = ByteBuffer.allocate(imgTOF.getHeight() * imgTOF.getWidth());
 
         int stride = plane.getRowStride();
         int offset = 0;
@@ -36,10 +40,12 @@ public class TofUtil {
                 buffers.xBuffer.add(x);
                 buffers.yBuffer.add(y);
                 buffers.dBuffer.add(depthRange / 1000.0f);
+                buffers.dByteBuffer.put((byte) depthRange);
                 buffers.percentageBuffer.add(depthPercentage);
             }
             offset += imgTOF.getWidth();
         }
         return buffers;
     }
+
 }
