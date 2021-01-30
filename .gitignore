@@ -53,3 +53,6 @@ PclProcessing/build/*
 # ipynb checkpoints
 */.ipynb_checkpoints*
 
+#Ignore the SDKs
+trees/HUAWEI AR Engine SDK_v2.10.0/*
+trees/OpenCv-android-sdk/*
