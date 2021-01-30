@@ -7,15 +7,14 @@ package com.huawei.arengine.demos.java.world.rendering;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.annotation.RequiresApi;
-
+import com.huawei.hiar.ARImage;
 import com.trees.activities.ImageCaptureActivity;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
@@ -26,10 +25,21 @@ import com.huawei.hiar.ARLightEstimate;
 import com.huawei.hiar.ARPlane;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARTrackable;
+import com.trees.common.helpers.ImageUtil;
+import com.trees.common.helpers.TofUtil;
+import com.trees.common.jni.ImageProcessorInterface;
 
+
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import static org.opencv.core.CvType.CV_32F;
 
 /**
  * This class shows how to render the data obtained through AREngine.
@@ -38,6 +48,11 @@ import javax.microedition.khronos.opengles.GL10;
  * @since 2020-03-21
  */
 public class RenderUtil implements GLSurfaceView.Renderer {
+
+    static {
+        System.loadLibrary("opencv_java3");
+    }
+
     private static final String TAG = RenderUtil.class.getSimpleName();
 
 
@@ -46,7 +61,6 @@ public class RenderUtil implements GLSurfaceView.Renderer {
     private static final float MATRIX_SCALE_SY = -1.0f;
 
     private ARSession mSession;
-    public ARFrame frame;
 
     private ImageCaptureActivity mActivity;
 
@@ -66,6 +80,8 @@ public class RenderUtil implements GLSurfaceView.Renderer {
 
 
     private DisplayRotationUtil mDisplayRotationUtil;
+
+    private CompletableFuture<ImageProcessorInterface.ImageRaw> captureFuture = null;
 
 
     /**
@@ -107,6 +123,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         mDisplayRotationUtil = displayRotationUtil;
     }
 
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // Clear color, set window color.
@@ -128,6 +145,37 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         mDisplayRotationUtil.updateViewportRotation(width, height);
     }
 
+    public Future<ImageProcessorInterface.ImageRaw> captureNextFrame() {
+        Log.i("AMELIA", "Planning to capture next frame");
+        captureFuture = new CompletableFuture<>();
+        return captureFuture;
+    }
+
+    private void maybeCaptureImage(ARFrame frame) {
+        if (captureFuture == null) {
+            return;
+        }
+        Log.i("AMELIA", "mebbe capturing image");
+        try (
+                Image imgRGB = frame.acquireCameraImage();
+                ARImage imgTOF = (ARImage) frame.acquireDepthImage();
+            ) {
+            ImageProcessorInterface.ImageRaw ret = new ImageProcessorInterface.ImageRaw();
+            ret.rgbMat = ImageUtil.imageToMat(imgRGB);
+            Log.i("AMELIA", "matted rgb image");
+            TofUtil.TofArrays tofArrays = new TofUtil().parseTof(imgTOF);
+            Log.i("AMELIA", "parsed tof image");
+            ret.depthMat = new Mat(imgTOF.getHeight(), imgTOF.getWidth(), CV_32F);
+            Log.i("AMELIA", "matted tof image");
+            ret.depthMat.put(0,0, tofArrays.dBuffer);
+            Log.i("AMELIA", "rly matted tof image");
+            captureFuture.complete(ret);
+        } catch (Throwable t) {
+            captureFuture.completeExceptionally(t);
+        } finally {
+            captureFuture= null;
+        }
+    }
 
     @Override
     public void onDrawFrame(GL10 unused) {
@@ -145,8 +193,10 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         try {
             mSession.setCameraTextureName(mTextureRenderUtil.getExternalTextureId());
             ARFrame arFrame = mSession.update();
-            frame = arFrame;
             ARCamera arCamera = arFrame.getCamera();
+            maybeCaptureImage(arFrame);
+
+
             // ARCameraConfig arCameraConfig = mSession.getCameraConfig();
             mTextureRenderUtil.onDrawFrame(arFrame);
 

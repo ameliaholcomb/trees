@@ -1,1 +1,3 @@
+include ':sdk'
 include ':app', ':HUAWEI AR Engine SDK_v2.10.0'
+project(':sdk').projectDir = new File(rootDir, 'OpenCV-android-sdk/sdk/')

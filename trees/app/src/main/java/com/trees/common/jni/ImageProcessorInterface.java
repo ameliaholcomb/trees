@@ -5,6 +5,8 @@ import android.media.Image;
 
 import com.huawei.hiar.ARImage;
 
+import org.opencv.core.Mat;
+
 @FunctionalInterface
 public interface ImageProcessorInterface {
 
@@ -32,5 +34,10 @@ public interface ImageProcessorInterface {
         public float Depth;
     }
 
-    ImageResult processImage(Image imgRGB, ARImage imgTOF);
+    class ImageRaw {
+        public Mat rgbMat;
+        public Mat depthMat;
+    }
+
+    ImageResult processImage(ImageRaw raw);
 }

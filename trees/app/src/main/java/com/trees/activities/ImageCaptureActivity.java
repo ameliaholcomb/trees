@@ -19,17 +19,12 @@ package com.trees.activities;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
-import android.os.HandlerThread;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -40,19 +35,17 @@ import com.trees.common.helpers.ImageStore;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.hiar.AREnginesApk;
-import com.huawei.hiar.ARImage;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 import com.trees.common.helpers.ImageStoreInterface;
-import com.trees.common.jni.FakeImageProcessor;
-import com.trees.common.jni.ImageProcessor;
 import com.trees.common.jni.ImageProcessorInterface;
-import com.trees.common.jni.JavaImageProcessor;
-import com.trees.common.rendering.DrawingView;
+import com.trees.common.jni.ImageProcessor;
 import com.trees.model.ImageViewModel;
 import com.trees.model.ImageViewModelFactory;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -92,7 +85,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // TODO: Deal with this in a way Evan approves of
-        ImageProcessorInterface imageProcessor = new JavaImageProcessor();
+        ImageProcessorInterface imageProcessor = new ImageProcessor();
         ImageStoreInterface imageStore = new ImageStore();
         ImageViewModelFactory imageViewModelFactory = new ImageViewModelFactory(imageProcessor, imageStore);
         imageModel = new ViewModelProvider(this, imageViewModelFactory).get(ImageViewModel.class);
@@ -239,22 +232,24 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     public void onCaptureImage(View view) {
         Log.i(LOG_TAG, "Capturing an image");
-
-        if (renderUtil.frame == null) {
-            return;
+        Future<ImageProcessorInterface.ImageRaw> future = renderUtil.captureNextFrame();
+        Log.i(LOG_TAG, "Requested image capture");
+        try {
+            ImageProcessorInterface.ImageRaw raw = future.get();
+            Log.i(LOG_TAG, "got raw images back");
+            imageModel.captureImage(raw);
+            getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)
+                    .commit();
+        // TODO: Display to user that capture failed.
+        } catch (ExecutionException e) {
+            Log.i("AMELIA", "errrrr");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Log.i("AMELIA", "errrrr int");
+            e.printStackTrace();
         }
-
-        // Acquire ToF, RGB, and projection matrices
-        try (
-            Image imgRGB = renderUtil.frame.acquireCameraImage();
-            ARImage imgTOF = (ARImage) renderUtil.frame.acquireDepthImage();
-            ) {
-            imageModel.captureImage(imgRGB, imgTOF);
-        }
-        getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)
-                .commit();
     }
 
 

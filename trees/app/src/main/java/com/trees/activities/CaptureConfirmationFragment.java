@@ -16,7 +16,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.trees.common.helpers.StoragePermissionHelper;
 import com.trees.model.ImageViewModel;
 
-import java.io.IOException;
 
 public class CaptureConfirmationFragment extends Fragment implements View.OnClickListener {
     private String LOG_TAG = "AMELIA";
@@ -28,14 +27,14 @@ public class CaptureConfirmationFragment extends Fragment implements View.OnClic
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Set up fragment buttons
         view = inflater.inflate(R.layout.capture_confirmation_fragment_view, container, false);
-        ((Button) view.findViewById(R.id.Redo)).setOnClickListener(this);
-        ((Button) view.findViewById(R.id.Save)).setOnClickListener(this);
+        view.findViewById(R.id.Redo).setOnClickListener(this);
+        view.findViewById(R.id.Save).setOnClickListener(this);
 
         // Subscribe to display image, updating with the latest capture
         imageModel = new ViewModelProvider(requireActivity()).get(ImageViewModel.class);
         imageModel.getCurrentCapture().observe(getViewLifecycleOwner(), capture -> {
                     Bitmap displayImage = capture.DisplayImage;
-                    ImageView imageView = (ImageView) view.findViewById(R.id.imageView);
+                    ImageView imageView = view.findViewById(R.id.imageView);
                     imageView.setImageBitmap(displayImage);
                     }
                 );

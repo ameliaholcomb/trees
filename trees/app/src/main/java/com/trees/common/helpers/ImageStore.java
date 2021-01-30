@@ -59,7 +59,7 @@ public class ImageStore implements ImageStoreInterface {
     }
 
     public void saveToFileTOF(
-            Integer sampleNumber, Integer captureNumber, TofBuffers buffers) throws IOException {
+            Integer sampleNumber, Integer captureNumber, TofUtil.TofArrays arrays) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.TOF);
         File outFile = getOrCreateFile(filename);
@@ -69,14 +69,14 @@ public class ImageStore implements ImageStoreInterface {
         try (FileWriter writer = new FileWriter(outFile)) {
             StringBuilder str = new StringBuilder();
 
-            for (int i = 0; i < buffers.dBuffer.size(); i++) {
-                str.append(buffers.xBuffer.get(i));
+            for (int i = 0; i < arrays.dBuffer.length; i++) {
+                str.append(arrays.xBuffer[i]);
                 str.append(',');
-                str.append(buffers.yBuffer.get(i));
+                str.append(arrays.yBuffer[i]);
                 str.append(',');
-                str.append(buffers.dBuffer.get(i));
+                str.append(arrays.dBuffer[i]);
                 str.append(',');
-                str.append(buffers.percentageBuffer.get(i));
+                str.append(arrays.percentageBuffer[i]);
                 str.append('\n');
             }
             writer.write(str.toString());

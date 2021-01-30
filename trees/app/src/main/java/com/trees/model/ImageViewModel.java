@@ -1,13 +1,11 @@
 package com.trees.model;
 
-import android.media.Image;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.huawei.hiar.ARImage;
 import com.trees.common.helpers.ImageStoreInterface;
 import com.trees.common.jni.ImageProcessorInterface;
 
@@ -16,17 +14,17 @@ import java.io.IOException;
 public class ImageViewModel extends ViewModel {
     private static String LOG_TAG = "AMELIA";
 
-    private ImageProcessorInterface imageProcessorInterface;
-    private ImageStoreInterface imageStoreInterface;
+    private ImageProcessorInterface imageProcessor;
+    private ImageStoreInterface imageStore;
 
     private Integer nextCapture;
     private MutableLiveData<Integer> sampleNumber;
     private MutableLiveData<ImageProcessorInterface.ImageResult> currentCapture;
 
     public ImageViewModel(
-            ImageProcessorInterface imageProcessorInterface, ImageStoreInterface imageStoreInterface) {
-        this.imageProcessorInterface = imageProcessorInterface;
-        this.imageStoreInterface = imageStoreInterface;
+            ImageProcessorInterface imageProcessor, ImageStoreInterface imageStore) {
+        this.imageProcessor = imageProcessor;
+        this.imageStore = imageStore;
         this.sampleNumber = new MutableLiveData<>();
         this.currentCapture = new MutableLiveData<>();
 
@@ -51,11 +49,8 @@ public class ImageViewModel extends ViewModel {
         return currentCapture;
     }
 
-    public void captureImage(Image rgbImage, ARImage tofImage) {
-        // Pass to JNI for image processing.
-        // The Java wrapper will handle parsing the Image and ARImage into JNI-compatible objects
-        ImageProcessorInterface.ImageResult imageResult = imageProcessorInterface.processImage(
-                rgbImage, tofImage);
+    public void captureImage(ImageProcessorInterface.ImageRaw raw) {
+        ImageProcessorInterface.ImageResult imageResult = imageProcessor.processImage(raw);
         currentCapture.setValue(imageResult);
     }
 
@@ -63,7 +58,7 @@ public class ImageViewModel extends ViewModel {
         ImageProcessorInterface.ImageResult c = currentCapture.getValue();
         Integer s = sampleNumber.getValue();
         try {
-            imageStoreInterface.saveToFileRGB(s, nextCapture, c.RGBImage);
+            imageStore.saveToFileRGB(s, nextCapture, c.RGBImage);
             //        imageStoreInterface.saveToFileTOF(sampleNumber, nextCapture, c.DepthImage, c.ConfImage);
             //        imageStoreInterface.saveToFileMatrix(sampleNumber, nextCapture, c.matrices);
         } catch (IOException e) {

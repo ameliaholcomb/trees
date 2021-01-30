@@ -1,5 +1,7 @@
 package com.trees.common.helpers;
 
+import android.util.Log;
+
 import com.huawei.hiar.ARImage;
 
 
@@ -8,20 +10,33 @@ import java.nio.ShortBuffer;
 import java.util.ArrayList;
 
 public class TofUtil {
+    public class TofArrays {
+        public short[] xBuffer;
+        public short[] yBuffer;
+        public float[] dBuffer;
+        public float[] percentageBuffer;
+        public int length;
 
-    public static TofBuffers TofToBuffers(ARImage imgTOF) {
+        public TofArrays(int size) {
+            xBuffer = new short[size];
+            yBuffer = new short[size];
+            dBuffer = new float[size];
+            percentageBuffer = new float[size];
+        }
+    }
+
+    public TofArrays parseTof(ARImage imgTOF) {
 
         // Buffers for storing TOF output
-        TofBuffers buffers = new TofBuffers();
-
+        TofArrays arrays = new TofArrays(imgTOF.getWidth() * imgTOF.getHeight());
         ARImage.Plane plane = imgTOF.getPlanes()[0];
         ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
-        buffers.dByteBuffer = ByteBuffer.allocate(imgTOF.getHeight() * imgTOF.getWidth());
 
         int stride = plane.getRowStride();
         int offset = 0;
-        float sum = 0.0f;
-        float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
+//        float sum = 0.0f;
+//        float[] output = new float[imgTOF.getWidth() * imgTOF.getHeight()];
+        int i = 0;
         for (short y = 0; y < imgTOF.getHeight(); y++) {
             for (short x = 0; x < imgTOF.getWidth(); x++) {
                 // Parse the data. Format is [depth|confidence]
@@ -32,19 +47,20 @@ public class TofUtil {
                 short depthConfidence = (short) ((depthSampleShort >> 13) & 0x7);
                 float depthPercentage = depthConfidence == 0 ? 1.f : (depthConfidence - 1) / 7.f;
 
-                output[offset + x] = (float) depthRange / 10000;
+//                output[offset + x] = (float) depthRange / 10000;
 
-                sum += output[offset + x];
+//                sum += output[offset + x];
+
                 // Store data in buffer
-                buffers.xBuffer.add(x);
-                buffers.yBuffer.add(y);
-                buffers.dBuffer.add(depthRange / 1000.0f);
-                buffers.dByteBuffer.put((byte) depthRange);
-                buffers.percentageBuffer.add(depthPercentage);
+                arrays.xBuffer[i] = x;
+                arrays.yBuffer[i] = y;
+                arrays.dBuffer[i] = depthRange / 1000.0f;
+                arrays.percentageBuffer[i] = depthPercentage;
+                i++;
             }
             offset += imgTOF.getWidth();
         }
-        return buffers;
+        return arrays;
     }
 
 }

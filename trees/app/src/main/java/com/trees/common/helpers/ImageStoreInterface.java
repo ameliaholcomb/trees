@@ -8,7 +8,7 @@ import java.io.IOException;
 public interface ImageStoreInterface {
 
     void saveToFileTOF(
-            Integer sampleNumber, Integer captureNumber, TofBuffers buffers) throws IOException;
+            Integer sampleNumber, Integer captureNumber, TofUtil.TofArrays arrays) throws IOException;
 
     void saveToFileRGB(
             Integer sampleNumber, Integer captureNumber, Bitmap image) throws IOException;
