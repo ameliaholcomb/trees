@@ -1,11 +1,7 @@
 package com.trees.common.jni;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
-import android.media.Image;
-
-import com.huawei.hiar.ARImage;
-
-import org.opencv.core.Mat;
 
 @FunctionalInterface
 public interface ImageProcessorInterface {
@@ -35,9 +31,9 @@ public interface ImageProcessorInterface {
     }
 
     class ImageRaw {
-        public Mat rgbMat;
-        public Mat depthMat;
+        public byte[] rgbMat;
+        public float[] depthMat;
     }
 
-    ImageResult processImage(ImageRaw raw);
+    ImageResult processImage(Activity context, ImageRaw raw);
 }

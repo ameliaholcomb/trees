@@ -30,16 +30,12 @@ import com.trees.common.helpers.TofUtil;
 import com.trees.common.jni.ImageProcessorInterface;
 
 
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import static org.opencv.core.CvType.CV_32F;
 
 /**
  * This class shows how to render the data obtained through AREngine.
@@ -48,10 +44,6 @@ import static org.opencv.core.CvType.CV_32F;
  * @since 2020-03-21
  */
 public class RenderUtil implements GLSurfaceView.Renderer {
-
-    static {
-        System.loadLibrary("opencv_java3");
-    }
 
     private static final String TAG = RenderUtil.class.getSimpleName();
 
@@ -146,7 +138,6 @@ public class RenderUtil implements GLSurfaceView.Renderer {
     }
 
     public Future<ImageProcessorInterface.ImageRaw> captureNextFrame() {
-        Log.i("AMELIA", "Planning to capture next frame");
         captureFuture = new CompletableFuture<>();
         return captureFuture;
     }
@@ -155,20 +146,16 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         if (captureFuture == null) {
             return;
         }
-        Log.i("AMELIA", "mebbe capturing image");
         try (
                 Image imgRGB = frame.acquireCameraImage();
                 ARImage imgTOF = (ARImage) frame.acquireDepthImage();
             ) {
             ImageProcessorInterface.ImageRaw ret = new ImageProcessorInterface.ImageRaw();
-            ret.rgbMat = ImageUtil.imageToMat(imgRGB);
-            Log.i("AMELIA", "matted rgb image");
+            Log.i("AMELIA", String.format("%d x %d", imgRGB.getWidth(), imgRGB.getHeight()));
+            ret.rgbMat = ImageUtil.imageToByteArray(imgRGB);
+            Log.i("AMELIA", String.format("%d", ret.rgbMat.length));
             TofUtil.TofArrays tofArrays = new TofUtil().parseTof(imgTOF);
-            Log.i("AMELIA", "parsed tof image");
-            ret.depthMat = new Mat(imgTOF.getHeight(), imgTOF.getWidth(), CV_32F);
-            Log.i("AMELIA", "matted tof image");
-            ret.depthMat.put(0,0, tofArrays.dBuffer);
-            Log.i("AMELIA", "rly matted tof image");
+            ret.depthMat = tofArrays.dBuffer;
             captureFuture.complete(ret);
         } catch (Throwable t) {
             captureFuture.completeExceptionally(t);

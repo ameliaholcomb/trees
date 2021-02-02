@@ -1,20 +1,22 @@
 package com.trees.common.helpers;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
 import android.util.Log;
 
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
+//import org.opencv.core.CvType;
+//import org.opencv.core.Mat;
+//import org.opencv.imgproc.Imgproc;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
-import static org.opencv.core.CvType.CV_8UC1;
-import static org.opencv.imgproc.Imgproc.cvtColor;
+//import static org.opencv.core.CvType.CV_8UC1;
+//import static org.opencv.imgproc.Imgproc.cvtColor;
 /*
 
 An image utility class for converting images from different format to byte array for saving
@@ -32,7 +34,7 @@ public class ImageUtil {
         return data;
     }
 
-    private static byte[] YUV_420_888toNV21(Image image) {
+    public static byte[] YUV_420_888toNV21(Image image) {
 
         int width = image.getWidth();
         int height = image.getHeight();
@@ -107,14 +109,14 @@ public class ImageUtil {
     }
 
     // Convert Image to OpenCV Mat
-    public static Mat imageToMat(Image image) {
-        int height = image.getHeight() + (int) Math.ceil(image.getHeight() / 2);
-        int width = image.getWidth();
-        byte[] data = YUV_420_888toNV21(image);
-        Mat mYuv = new Mat(height, width, CV_8UC1);
-        mYuv.put(0, 0, data);
-        Mat mRGB = new Mat();
-        cvtColor(mYuv, mRGB, Imgproc.COLOR_YUV2RGB_NV21, 3);
-        return mRGB;
-    }
+//    public static Mat imageToMat(Image image) {
+//        int height = image.getHeight() + (int) Math.ceil(image.getHeight() / 2);
+//        int width = image.getWidth();
+//        byte[] data = YUV_420_888toNV21(image);
+//        Mat mYuv = new Mat(height, width, CV_8UC1);
+//        mYuv.put(0, 0, data);
+//        Mat mRGB = new Mat();
+//        cvtColor(mYuv, mRGB, Imgproc.COLOR_YUV2RGB_NV21, 3);
+//        return mRGB;
+//    }
 }

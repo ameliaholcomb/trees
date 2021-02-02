@@ -1,5 +1,6 @@
 package com.trees.model;
 
+import android.app.Activity;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
@@ -49,8 +50,8 @@ public class ImageViewModel extends ViewModel {
         return currentCapture;
     }
 
-    public void captureImage(ImageProcessorInterface.ImageRaw raw) {
-        ImageProcessorInterface.ImageResult imageResult = imageProcessor.processImage(raw);
+    public void captureImage(Activity context, ImageProcessorInterface.ImageRaw raw) {
+        ImageProcessorInterface.ImageResult imageResult = imageProcessor.processImage(context, raw);
         currentCapture.setValue(imageResult);
     }
 

@@ -53,6 +53,9 @@ PclProcessing/build/*
 # ipynb checkpoints
 */.ipynb_checkpoints*
 
+# python cache
+**/__pycache__/*
+
 #Ignore the SDKs
 trees/HUAWEI AR Engine SDK_v2.10.0/*
 trees/OpenCv-android-sdk/*

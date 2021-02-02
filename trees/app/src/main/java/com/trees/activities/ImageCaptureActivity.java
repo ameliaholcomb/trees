@@ -231,13 +231,10 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
 
     public void onCaptureImage(View view) {
-        Log.i(LOG_TAG, "Capturing an image");
         Future<ImageProcessorInterface.ImageRaw> future = renderUtil.captureNextFrame();
-        Log.i(LOG_TAG, "Requested image capture");
         try {
             ImageProcessorInterface.ImageRaw raw = future.get();
-            Log.i(LOG_TAG, "got raw images back");
-            imageModel.captureImage(raw);
+            imageModel.captureImage(this, raw);
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)

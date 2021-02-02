@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.chaquo.python'
 
 android {
     compileSdkVersion 29
@@ -18,6 +19,23 @@ android {
             file("secure.properties")?.withInputStream { secureProps.load(it) }
         }
         resValue "string", "maps_api_key", (secureProps.getProperty("MAPS_API_KEY") ?: "")
+        ndk {
+//            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            abiFilters "arm64-v8a"
+        }
+        python {
+            pip {
+                // Pip requirements
+                install "numpy"
+                install "pillow"
+                install "scikit-image"
+                install "sklearn"
+                install "scipy"
+            }
+            pyc {
+                src false
+            }
+        }
     }
 
     compileOptions {
@@ -31,13 +49,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    externalNativeBuild {
-        cmake {
-            path file('CMakeLists.txt')
-        }
-    }
-    ndkVersion '21.0.6113669'
-
 }
 
 dependencies {
@@ -52,7 +63,7 @@ dependencies {
     implementation 'com.google.ar:core:1.15.0'
     implementation 'com.google.android.gms:play-services-maps:17.0.0'
     implementation 'org.jetbrains:annotations:15.0'
-    implementation project(path: ':sdk')
+//    implementation project(path: ':sdk')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'

@@ -33,6 +33,7 @@ public class CaptureConfirmationFragment extends Fragment implements View.OnClic
         // Subscribe to display image, updating with the latest capture
         imageModel = new ViewModelProvider(requireActivity()).get(ImageViewModel.class);
         imageModel.getCurrentCapture().observe(getViewLifecycleOwner(), capture -> {
+                    Log.i("AMELIA", "I believe there is a new image to display");
                     Bitmap displayImage = capture.DisplayImage;
                     ImageView imageView = view.findViewById(R.id.imageView);
                     imageView.setImageBitmap(displayImage);

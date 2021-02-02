@@ -41,6 +41,7 @@ struct Image {
                 .buffer_size = env->GetDirectBufferCapacity(buf)
             });
         }
+        return image;
     }
 };
 
@@ -54,6 +55,7 @@ Java_com_trees_common_jni_ImageProcessor_nativeProcessImage(
     Image tofImage = Image::FromJNI(ar_info, ar_pixel_stride, ar_row_stride, ar_buffers, env);
 
 //    cv::Mat
+    return 1;
 
 }
 
