@@ -48,7 +48,7 @@ public class ImageProcessor implements ImageProcessorInterface {
         Log.i("AMELIA", String.format("position: %d", display.position()));
 
         ImageResult imageResult = new ImageResult();
-        imageResult.DisplayImage = Bitmap.createBitmap(SHAPE[0], SHAPE[1], Bitmap.Config.ARGB_8888);
+        imageResult.DisplayImage = Bitmap.createBitmap(SHAPE[1], SHAPE[0], Bitmap.Config.ARGB_8888);
         imageResult.DisplayImage.copyPixelsFromBuffer(display);
 
         return imageResult;

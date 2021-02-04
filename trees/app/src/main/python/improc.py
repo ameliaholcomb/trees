@@ -3,8 +3,10 @@ import io
 import math
 import numpy as np
 import PIL.Image as Image
-from scipy.ndimage.interpolation import rotate
-from scipy.stats import mode
+from skimage import io as skio
+from skimage import draw, img_as_ubyte, transform
+from scipy.ndimage import interpolation
+from scipy import stats
 from sklearn.decomposition import PCA
 
 SHAPE = (360, 480)
@@ -29,9 +31,7 @@ def find_boundaries(rgbd, depth_filtered):
 	angle = get_rotate_angle(rgbd[:,CENTER_BOUNDS[0]:CENTER_BOUNDS[1],:])
 
 	depth_filtered_center_mask = (depth_filtered[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]] > 0) * 1
-	depth_filtered_center_mask_rotated = rotate(depth_filtered_center_mask, angle)
-
-	depth_filtered_rotated = rotate(depth_filtered, angle)
+	depth_filtered_center_mask_rotated = interpolation.rotate(depth_filtered_center_mask, angle, reshape=False)
 
 	left_boundary = 0
 	for j in range(int(SHAPE[1] / 3)):
@@ -72,7 +72,7 @@ def run(depth_arr, rgb_arr):
 	scale_factor = 2
 	depth = np.kron(depth, np.ones((scale_factor, scale_factor)))
 
-	rgb = Image.open(io.BytesIO(rgb_arr)).resize(SHAPE)
+	rgb = transform.resize(skio.imread(io.BytesIO(rgb_arr)), SHAPE)
 
 	# get filtered depth data and filtered rgb-d image
 	# depth data from center third of image
@@ -84,7 +84,7 @@ def run(depth_arr, rgb_arr):
 	# For now we'll try 3cm resolution
 	bins = np.arange(0.0, 5.0, 0.03)
 	digitized_center_depths = np.digitize(center_depths[center_depths != 0], bins)
-	mode_depth = bins[mode(digitized_center_depths, axis=None).mode[0]]
+	mode_depth = bins[stats.mode(digitized_center_depths, axis=None).mode[0]]
 
 	# zero out depth values that are not within 10% of the mode center depth
 	depth_approx = 0.1 * mode_depth
@@ -93,20 +93,30 @@ def run(depth_arr, rgb_arr):
 
 	# create rgb-d image with filtered depth values
 	# note that the fourth axis in the rgb image will be interpreted as an alpha channel,
-	# so all the zero-valued depths will be completely transparent (aka invisible)
+	# so all the zero-valued depths will be partly transparent
 	# when the rgb image is shown.
-	rgb_matrix = np.transpose(np.array(rgb), (1, 0, 2))
-	rgbd = np.append(rgb_matrix, depth_filtered[:,:,np.newaxis], axis=2)
+	rgbd = np.append(rgb, depth_filtered[:,:,np.newaxis], axis=2)
 
 	# rotate image to fit the tree vertically and approximate with vertical lines
 	angle, left, right = find_boundaries(rgbd, depth_filtered)
-	rgb_rotated = rgb.rotate(angle)
+
+	# Prepare display image 
+	bounds = np.zeros(SHAPE)
+	bounds[:,left] = 1
+	bounds[:,right] = 1
+	bounds_rot = interpolation.rotate(bounds, -angle, reshape=False)
+	rgb_disp = np.copy(rgbd)
+	rgb_disp[np.where(np.abs(bounds_rot) > 0.1 )] = [0.0, 1.0, 0.0, 1.0]
+
+	# img_rgbd_rotated = interpolation.rotate(rgbd, angle, reshape=False)
+	# rgb_disp = np.copy(img_rgbd_rotated)
+	# rgb_disp[:,left-1:left+1] = [1.0, 0.0, 0.0, 1.0]
+	# rgb_disp[:,right-1:right+1] = [1.0, 0.0, 0.0, 1.0]
+	# rgb_disp = interpolation.rotate(rgb_disp, -angle, reshape=False)
+	rgb_disp = np.clip(rgb_disp, 0, 1)
 
 	# calculate the final estimated width
 	estimated_width = get_estimated_width(mode_depth, right - left, angle)
 
-	# Add alpha channel
-	rgb.putalpha(255)
-
-	return bytes(rgb.tobytes())
+	return bytes(img_as_ubyte(rgb_disp))
 
