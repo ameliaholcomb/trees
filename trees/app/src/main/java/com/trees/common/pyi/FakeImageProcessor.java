@@ -1,11 +1,8 @@
-package com.trees.common.jni;
+package com.trees.common.pyi;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.media.Image;
-
-import com.huawei.hiar.ARImage;
 
 public class FakeImageProcessor implements ImageProcessorInterface {
 

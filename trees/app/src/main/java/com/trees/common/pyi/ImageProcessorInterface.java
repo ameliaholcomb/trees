@@ -1,4 +1,4 @@
-package com.trees.common.jni;
+package com.trees.common.pyi;
 
 import android.app.Activity;
 import android.graphics.Bitmap;

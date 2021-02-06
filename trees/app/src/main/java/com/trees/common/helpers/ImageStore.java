@@ -1,11 +1,6 @@
 package com.trees.common.helpers;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
-
-import com.trees.common.jni.ImageProcessor;
-import com.trees.common.jni.ImageProcessorInterface;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,7 +9,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 
 public class ImageStore implements ImageStoreInterface {
     private static final String LOG_TAG = "AMELIA";

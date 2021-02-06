@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.trees.common.helpers.ImageStoreInterface;
-import com.trees.common.jni.ImageProcessorInterface;
+import com.trees.common.pyi.ImageProcessorInterface;
 
 import java.lang.reflect.InvocationTargetException;
 

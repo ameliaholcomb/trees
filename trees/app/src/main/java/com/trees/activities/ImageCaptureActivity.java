@@ -18,7 +18,6 @@ package com.trees.activities;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,8 +38,8 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 import com.trees.common.helpers.ImageStoreInterface;
-import com.trees.common.jni.ImageProcessorInterface;
-import com.trees.common.jni.ImageProcessor;
+import com.trees.common.pyi.ImageProcessorInterface;
+import com.trees.common.pyi.ImageProcessor;
 import com.trees.model.ImageViewModel;
 import com.trees.model.ImageViewModelFactory;
 

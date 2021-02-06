@@ -27,7 +27,7 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARTrackable;
 import com.trees.common.helpers.ImageUtil;
 import com.trees.common.helpers.TofUtil;
-import com.trees.common.jni.ImageProcessorInterface;
+import com.trees.common.pyi.ImageProcessorInterface;
 
 
 import java.util.concurrent.CompletableFuture;
