@@ -5,10 +5,12 @@ import android.util.Log;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.Objects;
 
 public class ImageStore implements ImageStoreInterface {
     private static final String LOG_TAG = "AMELIA";
@@ -160,6 +162,24 @@ public class ImageStore implements ImageStoreInterface {
     }
 
 
+    public Integer[] getMaxSampleCaptureNums() {
+        File dir = new File(filepath, FOLDER);
+        if (!dir.exists()) {
+            return new Integer[]{0, 1};
+        }
+
+        Integer maxS = 0;
+        Integer maxC = 0;
+        FilenameFilter filter = (d, name) -> !name.contains(".");
+        for (File file : dir.listFiles(filter)) {
+            String name = file.getName();
+            String[] s = name.replaceAll(PREFIX, "").split("_");
+            maxS = Math.max(Integer.parseInt(s[0]), maxS);
+            maxC = Math.max(Integer.parseInt(s[1]), maxC);
+        }
+        return new Integer[] {maxS + 1, maxC + 1};
+
+    }
     public void deleteFiles() {
         // File object for the directory where the data is saved.
         File dir = new File(filepath, FOLDER);

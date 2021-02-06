@@ -33,9 +33,23 @@ public class ImageViewModel extends ViewModel {
         this.sampleNumber = new MutableLiveData<>();
         this.currentCapture = new MutableLiveData<>();
 
-        nextCapture = state.contains("nextCapture") ? state.get("nextCapture") : 0;
-        Integer s = state.contains("sampleNumber") ? state.get("sampleNumber") : 1;
+        Integer s;
+        Integer c;
+        if (state.contains("nextCapture") && state.contains("sampleNumber")) {
+            // Get sample and capture number from saved state
+            c = state.get("nextCapture");
+            s = state.get("sampleNumber");
+        } else {
+            // If there is no saved state, get the maximum sample and capture numbers currently saved
+            // in the file system. Defaults to s = 1, c = 0 if the target directory is empty
+            Integer[] sc = imageStore.getMaxSampleCaptureNums();
+            s = sc[0];
+            c = sc[1];
+        }
         sampleNumber.setValue(s);
+        state.set("sampleNumber", sampleNumber.getValue());
+        nextCapture = c;
+        state.set("nextCapture", c);
     }
 
     public LiveData<Integer> getSampleNumber() {

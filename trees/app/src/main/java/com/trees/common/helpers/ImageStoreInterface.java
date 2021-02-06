@@ -19,4 +19,6 @@ public interface ImageStoreInterface {
 
     void saveToFileResults(
             Integer sampleNumber, Integer nextCapture, float depth, float diameter);
+
+    Integer[] getMaxSampleCaptureNums();
 }
