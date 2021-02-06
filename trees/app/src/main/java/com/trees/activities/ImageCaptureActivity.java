@@ -50,17 +50,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ImageCaptureActivity extends AppCompatActivity {
     private static final String TAG = ImageCaptureActivity.class.getSimpleName();
-    private static final String SAMPLE_NUM_ID = "sampleNum";
-    private static final String DELETE_BUTTON_ID = "deleteButton";
     private static final String LOG_TAG = "AMELIA";
     // Required for test run.
     private static final Short AUTOMATOR_DEFAULT = 0;
     private static final String AUTOMATOR_KEY = "automator";
-    // Projection matrix constants
-    private static final int PROJ_MATRIX_OFFSET = 0;
-    private static final float PROJ_MATRIX_NEAR = 0.1f;
-    private static final float PROJ_MATRIX_FAR = 100.0f;
     private final AtomicBoolean automatorRun = new AtomicBoolean(false);
+    // Projection matrix constants
+//    private static final int PROJ_MATRIX_OFFSET = 0;
+//    private static final float PROJ_MATRIX_NEAR = 0.1f;
+//    private static final float PROJ_MATRIX_FAR = 100.0f;
 
     private ImageViewModel imageModel;
 
@@ -83,12 +81,11 @@ public class ImageCaptureActivity extends AppCompatActivity {
         // TODO: Deal with this in a way Evan approves of
         ImageProcessorInterface imageProcessor = new ImageProcessor();
         ImageStoreInterface imageStore = new ImageStore();
-        ImageViewModelFactory imageViewModelFactory = new ImageViewModelFactory(imageProcessor, imageStore);
+        ImageViewModelFactory imageViewModelFactory = new ImageViewModelFactory(
+                imageStore, imageProcessor, this, savedInstanceState);
         imageModel = new ViewModelProvider(this, imageViewModelFactory).get(ImageViewModel.class);
         imageModel.getSampleNumber().observe(this, sample -> {
-                    int sampleNumId = getResources().getIdentifier(
-                            SAMPLE_NUM_ID, "id", context.getPackageName());
-                    EditText sampleNum = (EditText) findViewById(sampleNumId);
+                    EditText sampleNum = (EditText) findViewById(R.id.sampleNum);
                     sampleNum.setText(Integer.toString(sample));
 
                     if (sample == 0) {
@@ -258,16 +255,13 @@ public class ImageCaptureActivity extends AppCompatActivity {
     // TODO: Move this to a separate activity showing all saved images
     // Enable the button to delete all files
     private void enableDeleteButton() {
-        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
-        Log.i("delete id", Integer.toString(deleteId));
-        View view = findViewById(deleteId);
+        View view = findViewById(R.id.deleteButton);
         view.setVisibility(View.VISIBLE);
         view.setEnabled(true);
     }
 
     private void disableDeleteButton() {
-        int deleteId = getResources().getIdentifier(DELETE_BUTTON_ID, "id", context.getPackageName());
-        View view = findViewById(deleteId);
+        View view = findViewById(R.id.deleteButton);
 
         if (view.getVisibility() == View.VISIBLE) {
             view.setVisibility(View.GONE);

@@ -1,10 +1,12 @@
 package com.trees.model;
 
 import android.app.Activity;
+import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 
 import com.trees.common.helpers.ImageStoreInterface;
@@ -17,21 +19,23 @@ public class ImageViewModel extends ViewModel {
 
     private ImageProcessorInterface imageProcessor;
     private ImageStoreInterface imageStore;
+    private SavedStateHandle state;
 
     private Integer nextCapture;
     private MutableLiveData<Integer> sampleNumber;
     private MutableLiveData<ImageProcessorInterface.ImageResult> currentCapture;
 
-    public ImageViewModel(
+    public ImageViewModel(SavedStateHandle savedStateHandle,
             ImageProcessorInterface imageProcessor, ImageStoreInterface imageStore) {
+        this.state = savedStateHandle;
         this.imageProcessor = imageProcessor;
         this.imageStore = imageStore;
         this.sampleNumber = new MutableLiveData<>();
         this.currentCapture = new MutableLiveData<>();
 
-        // TODO: Persist sample and capture number
-        this.nextCapture = 0;
-        this.sampleNumber.setValue(1);
+        nextCapture = state.contains("nextCapture") ? state.get("nextCapture") : 0;
+        Integer s = state.contains("sampleNumber") ? state.get("sampleNumber") : 1;
+        sampleNumber.setValue(s);
     }
 
     public LiveData<Integer> getSampleNumber() {
@@ -40,10 +44,12 @@ public class ImageViewModel extends ViewModel {
 
     public void incrementSampleNumber() {
         sampleNumber.setValue(sampleNumber.getValue() + 1);
+        state.set("sampleNumber", sampleNumber.getValue());
     }
 
     public void decrementSampleNumber() {
         sampleNumber.setValue(Math.min(0, sampleNumber.getValue() - 1));
+        state.set("sampleNumber", sampleNumber.getValue());
     }
 
     public LiveData<ImageProcessorInterface.ImageResult> getCurrentCapture() {
@@ -66,5 +72,6 @@ public class ImageViewModel extends ViewModel {
             Log.e(LOG_TAG, "Unable to store the image: ", e);
         }
         nextCapture++;
+        state.set("nextCapture", nextCapture);
     }
 }
