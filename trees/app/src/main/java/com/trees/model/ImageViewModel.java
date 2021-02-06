@@ -60,8 +60,8 @@ public class ImageViewModel extends ViewModel {
         Integer s = sampleNumber.getValue();
         try {
             imageStore.saveToFileRGB(s, nextCapture, c.RGBImage);
-            //        imageStoreInterface.saveToFileTOF(sampleNumber, nextCapture, c.DepthImage, c.ConfImage);
-            //        imageStoreInterface.saveToFileMatrix(sampleNumber, nextCapture, c.matrices);
+            imageStore.saveToFileTOF(s, nextCapture, c.DepthImage);
+            imageStore.saveToFileResults(s, nextCapture, c.Depth, c.Diameter);
         } catch (IOException e) {
             Log.e(LOG_TAG, "Unable to store the image: ", e);
         }

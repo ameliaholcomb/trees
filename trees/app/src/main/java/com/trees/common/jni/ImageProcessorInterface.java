@@ -3,6 +3,8 @@ package com.trees.common.jni;
 import android.app.Activity;
 import android.graphics.Bitmap;
 
+import com.trees.common.helpers.TofUtil;
+
 @FunctionalInterface
 public interface ImageProcessorInterface {
 
@@ -15,13 +17,10 @@ public interface ImageProcessorInterface {
         public Bitmap DisplayImage;
 
         /* Raw RGB image, in a saveable format */
-        public Bitmap RGBImage;
+        public byte[] RGBImage;
 
         /* Raw Depth image, in a saveable float array format */
-        public float[] DepthImage;
-
-        /* Raw Confidence array, in a saveable float array format */
-        public float[] ConfImage;
+        public TofUtil.TofArrays DepthImage;
 
         /* Trunk diameter estimate, as computed by algorithm */
         public float Diameter;
@@ -32,7 +31,7 @@ public interface ImageProcessorInterface {
 
     class ImageRaw {
         public byte[] rgbMat;
-        public float[] depthMat;
+        public TofUtil.TofArrays tofMat;
     }
 
     ImageResult processImage(Activity context, ImageRaw raw);

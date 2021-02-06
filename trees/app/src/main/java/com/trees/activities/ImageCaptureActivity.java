@@ -57,7 +57,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
     // Required for test run.
     private static final Short AUTOMATOR_DEFAULT = 0;
     private static final String AUTOMATOR_KEY = "automator";
-    private static final String PREFERENCES = "stateInfo";
     // Projection matrix constants
     private static final int PROJ_MATRIX_OFFSET = 0;
     private static final float PROJ_MATRIX_NEAR = 0.1f;
@@ -66,8 +65,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     private ImageViewModel imageModel;
 
-    // Preferences object and associated file
-    SharedPreferences preferences;
     // AR session
     private ARSession arSession = null;
     // RenderUtil for rendering
@@ -129,7 +126,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
         surfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
         context = getApplicationContext();
-        preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
 
     }
 
@@ -239,7 +235,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
                     .setReorderingAllowed(true)
                     .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)
                     .commit();
-        // TODO: Display to user that capture failed.
+        // TODO: Display to user that capture failed and remove fragment
         } catch (ExecutionException e) {
             Log.i("AMELIA", "errrrr");
             e.printStackTrace();

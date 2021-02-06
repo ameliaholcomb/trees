@@ -1,7 +1,11 @@
 package com.trees.common.helpers;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
+
+import com.trees.common.jni.ImageProcessor;
+import com.trees.common.jni.ImageProcessorInterface;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -88,7 +92,7 @@ public class ImageStore implements ImageStoreInterface {
     }
 
     public void saveToFileRGB(
-            Integer sampleNumber, Integer captureNumber, Bitmap image) throws IOException {
+            Integer sampleNumber, Integer captureNumber, byte[] image) throws IOException {
 
         String filename = getFileName(sampleNumber, captureNumber, Filetype.JPEG);
         File outFile = getOrCreateFile(filename);
@@ -96,7 +100,8 @@ public class ImageStore implements ImageStoreInterface {
 //        Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
         try {
             FileOutputStream out = new FileOutputStream(outFile);
-            image.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.write(image);
+//            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.flush();
             out.close();
         } catch (Exception e) {
@@ -104,8 +109,27 @@ public class ImageStore implements ImageStoreInterface {
         }
     }
 
+    public void saveToFileResults(
+            Integer sampleNumber, Integer captureNumber, float depth, float diameter) {
 
-    public void saveToFileMatrix(
+        String filename = getFileName(sampleNumber, captureNumber, Filetype.MATRIX);
+        File outFile = getOrCreateFile(filename);
+
+        try (FileWriter writer = new FileWriter(outFile)) {
+            StringBuilder str = new StringBuilder();
+            str.append(depth);
+            str.append(',');
+            str.append(diameter);
+
+            writer.write(str.toString());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i(LOG_TAG, "Successfully wrote the file " + filename);
+        }
+    }
+
+    public void saveToFileProjectionMatrix(
             Integer sampleNumber, Integer captureNumber,
             float[] projectionMatrix, float[] viewMatrix) throws IOException {
 

@@ -118,5 +118,7 @@ def run(depth_arr, rgb_arr):
 	# calculate the final estimated width
 	estimated_width = get_estimated_width(mode_depth, right - left, angle)
 
-	return bytes(img_as_ubyte(rgb_disp))
+	# TODO: pytype
+	# Java expects: byte[] displayImage, float estDepth, float estWidth
+	return bytes(img_as_ubyte(rgb_disp)), mode_depth, estimated_width
 

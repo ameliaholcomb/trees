@@ -151,11 +151,9 @@ public class RenderUtil implements GLSurfaceView.Renderer {
                 ARImage imgTOF = (ARImage) frame.acquireDepthImage();
             ) {
             ImageProcessorInterface.ImageRaw ret = new ImageProcessorInterface.ImageRaw();
-            Log.i("AMELIA", String.format("%d x %d", imgRGB.getWidth(), imgRGB.getHeight()));
             ret.rgbMat = ImageUtil.imageToByteArray(imgRGB);
-            Log.i("AMELIA", String.format("%d", ret.rgbMat.length));
             TofUtil.TofArrays tofArrays = new TofUtil().parseTof(imgTOF);
-            ret.depthMat = tofArrays.dBuffer;
+            ret.tofMat = tofArrays;
             captureFuture.complete(ret);
         } catch (Throwable t) {
             captureFuture.completeExceptionally(t);

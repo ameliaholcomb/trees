@@ -11,9 +11,12 @@ public interface ImageStoreInterface {
             Integer sampleNumber, Integer captureNumber, TofUtil.TofArrays arrays) throws IOException;
 
     void saveToFileRGB(
-            Integer sampleNumber, Integer captureNumber, Bitmap image) throws IOException;
+            Integer sampleNumber, Integer captureNumber, byte[] image) throws IOException;
 
-    void saveToFileMatrix(
+    void saveToFileProjectionMatrix(
             Integer sampleNumber, Integer captureNumber,
             float[] projectionMatrix, float[] viewMatrix) throws IOException;
+
+    void saveToFileResults(
+            Integer sampleNumber, Integer nextCapture, float depth, float diameter);
 }

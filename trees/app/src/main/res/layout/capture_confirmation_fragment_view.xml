@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="#000">
 
     <ImageView
         android:id="@+id/imageView"
@@ -13,7 +14,8 @@
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:srcCompat="@tools:sample/avatars" />
+        tools:srcCompat="@tools:sample/avatars"
+        android:background="#000"/>
     <Button
         android:id="@+id/Redo"
         android:layout_width="wrap_content"

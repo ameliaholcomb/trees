@@ -16,7 +16,6 @@ public class FakeImageProcessor implements ImageProcessorInterface {
         // Ironically, turns the bitmap white
         bitmap.eraseColor(Color.WHITE);
         imageResult.DisplayImage = bitmap;
-        imageResult.RGBImage = bitmap;
         return imageResult;
     }
 }
