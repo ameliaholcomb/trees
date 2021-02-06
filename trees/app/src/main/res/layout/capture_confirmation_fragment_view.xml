@@ -16,6 +16,17 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:srcCompat="@tools:sample/avatars"
         android:background="#000"/>
+    <TextView
+        android:id="@+id/imageWarning"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/imageView"
+        android:layout_alignTop="@id/imageView"
+        android:layout_alignRight="@id/imageView"
+        android:layout_alignBottom="@id/imageView"
+        android:layout_margin="1dp"
+        android:gravity="center"
+        android:textColor="#FF0000" />
     <Button
         android:id="@+id/Redo"
         android:layout_width="wrap_content"

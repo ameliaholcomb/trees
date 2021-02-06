@@ -16,4 +16,10 @@
 <resources>
     <string name="app_name">Shared Camera Java</string>
     <string name="title_activity_maps">Map</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="zeroDiameterWarning">Warning: Could not compute diameter for this image</string>
+    <string name="noDepthPoints">Unable to find depth points. Try stepping closer to the tree?</string>
+    <string name="captureError">Error when capturing image, please try again.</string>
+    <string name="captureInterrupted">Interrupted while capturing image, please try again.</string>
 </resources>

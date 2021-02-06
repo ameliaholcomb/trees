@@ -235,12 +235,11 @@ public class ImageCaptureActivity extends AppCompatActivity {
                     .setReorderingAllowed(true)
                     .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)
                     .commit();
-        // TODO: Display to user that capture failed and remove fragment
         } catch (ExecutionException e) {
-            Log.i("AMELIA", "errrrr");
+            Toast.makeText(this, R.string.captureError, Toast.LENGTH_LONG).show();
             e.printStackTrace();
         } catch (InterruptedException e) {
-            Log.i("AMELIA", "errrrr int");
+            Toast.makeText(this, R.string.captureInterrupted, Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }

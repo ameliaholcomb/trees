@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
@@ -35,9 +36,11 @@ public class CaptureConfirmationFragment extends Fragment implements View.OnClic
                     Bitmap displayImage = capture.DisplayImage;
                     ImageView imageView = view.findViewById(R.id.imageView);
                     imageView.setImageBitmap(displayImage);
+                    if (capture.Diameter < 0.01) {
+                        TextView textView = view.findViewById(R.id.imageWarning);
+                        textView.setText(R.string.zeroDiameterWarning);
                     }
-                );
-
+                });
         return view;
     }
 

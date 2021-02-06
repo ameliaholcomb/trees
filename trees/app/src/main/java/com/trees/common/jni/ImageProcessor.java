@@ -2,18 +2,18 @@ package com.trees.common.jni;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.provider.ContactsContract;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
-import com.trees.common.helpers.TofUtil;
+import com.trees.activities.R;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
 
 
 public class ImageProcessor implements ImageProcessorInterface {
@@ -33,15 +33,13 @@ public class ImageProcessor implements ImageProcessorInterface {
         PyObject pyRgb = PyObject.fromJava(raw.rgbMat);
 
         ImageResult imageResult = new ImageResult();
-        byte[] displayImage = new byte[SHAPE[0] * SHAPE[1] * 4];
+        byte[] displayImage;
         try {
             List<PyObject> obj = ImProcModule.callAttrThrows("run", pyDepth, pyRgb).asList();
             displayImage = obj.get(0).toJava(byte[].class);
             float estDepth = obj.get(1).toJava(float.class);
             float estDiameter = obj.get(2).toJava(float.class);
 
-//            displayImage = ImProcModule.callAttrThrows(
-//                    "run", pyDepth, pyRgb).toJava(byte[].class);
             Buffer display = ByteBuffer.wrap(displayImage);
             imageResult.DisplayImage = Bitmap.createBitmap(SHAPE[1], SHAPE[0], Bitmap.Config.ARGB_8888);
             imageResult.DisplayImage.copyPixelsFromBuffer(display);
@@ -51,11 +49,9 @@ public class ImageProcessor implements ImageProcessorInterface {
             imageResult.Diameter = estDiameter;
 
         } catch (Throwable throwable) {
-            if (throwable.getMessage().contains("MissingDepthError")) {
-                // TODO: This works, just need to show the information to the user
-                Log.i("AMELIA", "no depthtthhs");
+            if (Objects.requireNonNull(throwable.getMessage()).contains("MissingDepthError")) {
+                Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();
             } else {
-                Log.i("AMELIA", "CAUGHT ASOMETHING");
                 throwable.printStackTrace();
             }
         }
