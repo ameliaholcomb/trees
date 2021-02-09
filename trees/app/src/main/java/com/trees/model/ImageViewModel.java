@@ -62,7 +62,7 @@ public class ImageViewModel extends ViewModel {
     }
 
     public void decrementSampleNumber() {
-        sampleNumber.setValue(Math.min(0, sampleNumber.getValue() - 1));
+        sampleNumber.setValue(Math.max(0, sampleNumber.getValue() - 1));
         state.set("sampleNumber", sampleNumber.getValue());
     }
 

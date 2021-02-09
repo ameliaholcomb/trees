@@ -3,44 +3,25 @@ import argparse
 import matplotlib
 import matplotlib.image as image
 import matplotlib.pyplot as plt
-import math
 import numpy as np
 import os
 import pandas as pd
-import statistics
-import skimage
-import skimage.segmentation as seg
-import skimage.filters as filters
-import re, glob
 
-from collections import defaultdict
-from mpl_toolkits.mplot3d import Axes3D
 from PIL import Image
-from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
-                                 denoise_wavelet, estimate_sigma)
-from skimage.transform import rescale, resize
+from skimage.transform import resize 
 from scipy.ndimage.interpolation import rotate
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from scipy.spatial import ConvexHull
-from scipy.stats import mode
 from sys import argv, exit
 from termcolor import colored
+
+import processor
 
 ##### file reading #####
 SAMPLE_PREFIX = "Capture_Sample_"
 
 ##### setting calibration parameters #####
 SHAPE = (360, 480)
-CENTER_BOUNDS = (int(SHAPE[1]/3), 2 * int(SHAPE[1]/3))
 TOF_SHAPE = (180, 240)
-TOF_CAM_DIMS = (4.896, 6.528)  # Units are in mm
-TOF_FOCAL_LEN = 5
-
-CALIB_DEPTH = 1.0  # Units in m
-CALIB_PIXEL_PER_METER = 356.25  # Units in m
-WIDTH_SCALE_FACTOR = 1.0  # scale the width based on current observation, may not be the most accurate
-
+CENTER_BOUNDS = (int(SHAPE[1]/3), 2 * int(SHAPE[1]/3))
 
 # read and format rgb and depth images
 def get_data(sample_num, capture_num):
@@ -80,47 +61,6 @@ def get_widths(reference_file):
     return sample_num_to_width
 
 
-def find_boundaries(img_rgbd, depth_matrix_filtered):
-    angle = get_rotate_angle(img_rgbd[:,CENTER_BOUNDS[0]:CENTER_BOUNDS[1],:])
-
-    depth_matrix_filtered_center_mask = (depth_matrix_filtered[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]] > 0) * 1
-    depth_matrix_filtered_center_mask_rotated = rotate(depth_matrix_filtered_center_mask, angle)
-
-    depth_matrix_filtered_rotated = rotate(depth_matrix_filtered, angle)
-
-    left_boundary = 0
-    for j in range(int(SHAPE[1] / 3)):
-        if np.bincount(depth_matrix_filtered_center_mask_rotated[:,j]).argmax() == 1:
-            left_boundary = j + int(SHAPE[1] / 3)
-            break
-
-    right_boundary = 0
-    for j in range(int(SHAPE[1] / 3) - 1, -1, -1):
-        if np.bincount(depth_matrix_filtered_center_mask_rotated[:,j]).argmax() == 1:
-            right_boundary = j + int(SHAPE[1] / 3)
-            break
-
-    return angle, left_boundary, right_boundary
-
-# rotates the matrix to vertical based on binary encoding
-def get_rotate_angle(matrix):
-    x = np.array(np.where(matrix[:,:,3] > 0)).T
-    # Perform a PCA and compute the angle of the first principal axes
-    pca = PCA(n_components=2).fit(x)
-    angle = np.arctan2(*pca.components_[0])
-    angle = np.rad2deg(angle)
-    print(angle)
-    if 80 < abs(angle) < 100:  # in case to rotate the image by 90 degree
-        angle_1 = angle - 90
-        angle_2 = angle + 90
-        return angle_1 if abs(angle_1) <= abs(angle_2) else angle_2
-    return angle + 180
-
-# calculate the final width
-def get_estimated_width(depth, pixels, angle):
-    return abs((depth * pixels) / (CALIB_DEPTH * CALIB_PIXEL_PER_METER * math.cos(np.deg2rad(angle)))) * WIDTH_SCALE_FACTOR
-
-
 # processes one sample capture
 def run_sample(sample_num, capture_num, width):
 
@@ -128,46 +68,46 @@ def run_sample(sample_num, capture_num, width):
     # get rgb image and corresponding depth data from files
     img_rgb, conf_matrix, depth_matrix = get_data(sample_num, capture_num)
 
-    # get filtered depth data and filtered rgb-d image
-    # depth data from center third of image
-    center_depths = depth_matrix[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]]
-
-    # find mode of center depths, omitting zero values
-    if np.sum(center_depths) == 0:
+    try:
+        angle, left, right, estimated_depth, estimated_width = processor.process(depth_matrix, img_rgb)
+    except processor.MissingDepthError as e:
         print(colored("Unable to process sample {}_{}, no depth values found".format(sample_num, capture_num), "red"))
         return
-    # Sensor range gives us a maximum of 5 meters away,
-    # For now we'll try 3cm resolution
-    bins = np.arange(0.0, 5.0, 0.03)
-    digitized_center_depths = np.digitize(center_depths[center_depths != 0], bins)
-    mode_depth = bins[mode(digitized_center_depths, axis=None).mode[0]]
 
-    # zero out depth values that are not within 10% of the mode center depth
-    depth_approx = 0.1 * mode_depth
-    depth_matrix_filtered = np.copy(depth_matrix)
-    depth_matrix_filtered[np.abs(depth_matrix - mode_depth) > depth_approx] = 0.0
-
+    center_depths = depth_matrix[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]]
     # create rgb-d image with filtered depth values
     # note that the fourth axis in the rgb image will be interpreted as an alpha channel,
     # so all the zero-valued depths will be completely transparent (aka invisible)
     # when the rgb image is shown.
+    depth_approx = 0.1 * estimated_depth
+    depth_matrix_filtered = np.copy(depth_matrix)
+    depth_matrix_filtered[np.abs(depth_matrix - estimated_depth) > depth_approx] = 0.0
     img_rgbd = np.append(img_rgb, depth_matrix_filtered[:,:,np.newaxis], axis=2)
 
-    # rotate image to fit the tree vertically and approximate with vertical lines
-    angle, left, right = find_boundaries(img_rgbd, depth_matrix_filtered)
-    img_rgbd_rotated = rotate(img_rgbd, angle)
+    # bounds = np.zeros(SHAPE)
+    # bounds[:,left] = 1
+    # bounds[:,right] = 1
+    # bounds_rot = rotate(bounds, -angle, reshape=False)
+    # rgb_disp2 = np.copy(img_rgbd)
+    # rgb_disp2[np.where(np.abs(bounds_rot) > 0.1 )] = [0.0, 1.0, 0.0, 1.0]
 
-    # calculate the final estimated width
-    estimated_width = get_estimated_width(mode_depth, right - left, angle)
+    # img_rgbd_rotated = rotate(img_rgbd, angle, reshape=False)
+    # rgb_disp = np.copy(img_rgbd_rotated)
+    # rgb_disp[:,left-1:left+1] = [1.0, 0.0, 0.0, 1.0]
+    # rgb_disp[:,right-1:right+1] = [1.0, 0.0, 0.0, 1.0]
+    # rgb_disp = rotate(rgb_disp, -angle, reshape=False)
+
     error = estimated_width - width
     error_pst = abs(error) / width * 100
 
     ###### CREATE FIGURE OF RESULTS #########
     # mask out the invalid entries
-    mask = np.logical_or(np.logical_or(depth_matrix == 0, depth_matrix == 0.0), depth_matrix > 6.0)
+    mask = np.logical_or(np.logical_or(depth_matrix == 0, depth_matrix == 0.0), depth_matrix > 4.5)
     fig = plt.figure(0,(15,15))
 
     ax = fig.add_subplot(221)
+    # ax.axvline(x=CENTER_BOUNDS[0])
+    # ax.axvline(x=CENTER_BOUNDS[1])
     ax.imshow(img_rgb)
     cs = ax.matshow(np.ma.masked_array(depth_matrix, mask))  # colors the points by depth
     fig.colorbar(cs)
@@ -180,13 +120,13 @@ def run_sample(sample_num, capture_num, width):
     ax = fig.add_subplot(223)
     ax.axvline(x=left)
     ax.axvline(x=right)
-    ax.imshow(img_rgbd_rotated)
+    ax.imshow(rotate(img_rgbd, angle, reshape=False))
 
     ax = fig.add_subplot(224)
     table_data = [
         ["sample num: ", sample_num],
         ["capture num: ", capture_num],
-        ["measured depth (m): ", mode_depth],
+        ["measured depth (m): ", estimated_depth],
         ["rotate angle (deg): ", angle],
         ["width (m): ", width],
         ["estimated width (m): ", estimated_width],
@@ -204,7 +144,7 @@ def run_sample(sample_num, capture_num, width):
     result_dict = {
         "sample_number": sample_num,
         "capture_number": capture_num,
-        "trunk_depth_m": mode_depth,
+        "trunk_depth_m": estimated_depth,
         "reference_width_m": width,
         "estimated_width_m": estimated_width,
         "angle_deg": angle,
