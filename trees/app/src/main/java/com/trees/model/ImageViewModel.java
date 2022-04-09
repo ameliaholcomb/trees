@@ -15,15 +15,15 @@ import com.trees.common.pyi.ImageProcessorInterface;
 import java.io.IOException;
 
 public class ImageViewModel extends ViewModel {
-    private static String LOG_TAG = "AMELIA";
+    private static final String LOG_TAG = "AMELIA";
 
-    private ImageProcessorInterface imageProcessor;
-    private ImageStoreInterface imageStore;
-    private SavedStateHandle state;
+    private final ImageProcessorInterface imageProcessor;
+    private final ImageStoreInterface imageStore;
+    private final SavedStateHandle state;
 
     private Integer nextCapture;
-    private MutableLiveData<Integer> sampleNumber;
-    private MutableLiveData<ImageProcessorInterface.ImageResult> currentCapture;
+    private final MutableLiveData<Integer> sampleNumber;
+    private final MutableLiveData<ImageProcessorInterface.ImageResult> currentCapture;
 
     public ImageViewModel(SavedStateHandle savedStateHandle,
             ImageProcessorInterface imageProcessor, ImageStoreInterface imageStore) {
@@ -51,6 +51,7 @@ public class ImageViewModel extends ViewModel {
         nextCapture = c;
         state.set("nextCapture", c);
     }
+
 
     public LiveData<Integer> getSampleNumber() {
         return sampleNumber;

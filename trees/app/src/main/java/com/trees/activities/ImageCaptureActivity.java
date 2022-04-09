@@ -38,6 +38,7 @@ import com.huawei.hiar.ARSession;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
 import com.trees.common.helpers.ImageStoreInterface;
+import com.trees.common.helpers.StoragePermissionHelper;
 import com.trees.common.pyi.ImageProcessorInterface;
 import com.trees.common.pyi.ImageProcessor;
 import com.trees.model.ImageViewModel;
@@ -78,6 +79,16 @@ public class ImageCaptureActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Verify STORAGE_PERMISSION has been granted.
+        if (!StoragePermissionHelper.hasStoragePermission(this)) {
+            StoragePermissionHelper.requestStoragePermission(this);
+        }
+
+        // Get permission to access the camera
+        if (!CameraPermissionHelper.hasCameraPermission(this)) {
+            CameraPermissionHelper.requestCameraPermission(this);
+        }
+
         // TODO: Deal with this in a way Evan approves of
         ImageProcessorInterface imageProcessor = new ImageProcessor();
         ImageStoreInterface imageStore = new ImageStore();
@@ -98,10 +109,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // Get permission to access the camera
-        if (!CameraPermissionHelper.hasCameraPermission(this)) {
-            CameraPermissionHelper.requestCameraPermission(this);
-        }
 
         Bundle extraBundle = getIntent().getExtras();
         if (extraBundle != null && 1 == extraBundle.getShort(AUTOMATOR_KEY, AUTOMATOR_DEFAULT)) {

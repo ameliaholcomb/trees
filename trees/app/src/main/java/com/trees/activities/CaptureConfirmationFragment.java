@@ -18,7 +18,7 @@ import com.trees.model.ImageViewModel;
 
 
 public class CaptureConfirmationFragment extends Fragment implements View.OnClickListener {
-    private String LOG_TAG = "AMELIA";
+    private final String LOG_TAG = "AMELIA";
     private View view;
     private ImageViewModel imageModel;
 
@@ -29,6 +29,7 @@ public class CaptureConfirmationFragment extends Fragment implements View.OnClic
         view = inflater.inflate(R.layout.capture_confirmation_fragment_view, container, false);
         view.findViewById(R.id.Redo).setOnClickListener(this);
         view.findViewById(R.id.Save).setOnClickListener(this);
+
 
         // Subscribe to display image, updating with the latest capture
         imageModel = new ViewModelProvider(requireActivity()).get(ImageViewModel.class);
@@ -45,12 +46,7 @@ public class CaptureConfirmationFragment extends Fragment implements View.OnClic
     }
 
     public void onApprove(View view) {
-        // Verify STORAGE_PERMISSION has been granted.
-        if (!StoragePermissionHelper.hasStoragePermission(requireActivity())) {
-            StoragePermissionHelper.requestStoragePermission(requireActivity());
-            Log.i(LOG_TAG, "We don't have storage permission!");
-            return;
-        }
+
         imageModel.storeCapture();
     }
 
