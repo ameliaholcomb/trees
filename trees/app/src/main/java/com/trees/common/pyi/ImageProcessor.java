@@ -48,6 +48,10 @@ public class ImageProcessor implements ImageProcessorInterface {
             imageResult.Depth = estDepth;
             imageResult.Diameter = estDiameter;
 
+            if (estDiameter == 0 && estDepth == 0) {
+                Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();
+            }
+
         } catch (Throwable throwable) {
             if (Objects.requireNonNull(throwable.getMessage()).contains("MissingDepthError")) {
                 Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();

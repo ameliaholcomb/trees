@@ -23,7 +23,10 @@ def run(depth_arr, rgb_arr):
 
 	rgb = transform.resize(skio.imread(io.BytesIO(rgb_arr)), SHAPE)
 
-	angle, left, right, est_depth, est_width = processor.process(depth, rgb)
+    try:
+	    angle, left, right, est_depth, est_width = processor.process(depth, rgb)
+	except (processor.NoTrunkFoundError, processor.MissingDepthError) as e:
+	    return bytes(img_as_ubyte(rgb_disp)), 0, 0
 
 	# Prepare display image 
 	bounds = np.zeros(SHAPE)
