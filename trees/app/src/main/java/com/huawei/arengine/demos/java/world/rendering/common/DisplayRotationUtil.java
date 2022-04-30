@@ -10,7 +10,8 @@ import android.hardware.display.DisplayManager.DisplayListener;
 import android.view.Display;
 import android.view.WindowManager;
 
-import com.huawei.hiar.ARSession;
+//import com.huawei.hiar.ARSession;
+import com.google.ar.core.Session;
 
 /**
  * Helper to track the display rotations. In particular, the 180 degree rotations are not notified
@@ -82,9 +83,9 @@ public class DisplayRotationUtil implements DisplayListener {
      * If the device is rotated, update the device window of the current ARSession.
      * This method should be called when activity is onDrawFrame.
      *
-     * @param session the {@link ARSession} object to set display geometry if display geometry changed.
+     * @param session the {@link Session} object to set display geometry if display geometry changed.
      */
-    public void updateArSessionDisplayGeometry(ARSession session) {
+    public void updateArSessionDisplayGeometry(Session session) {
         int displayRotation = mDisplay.getRotation();
         session.setDisplayGeometry(displayRotation, mViewportWidth, mViewportHeight);
         mIsDeviceRotation = false;

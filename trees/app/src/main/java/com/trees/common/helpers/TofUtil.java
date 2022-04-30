@@ -2,7 +2,8 @@ package com.trees.common.helpers;
 
 import android.util.Log;
 
-import com.huawei.hiar.ARImage;
+//import com.huawei.hiar.ARImage;
+import com.google.ar.core.ArImage;
 
 
 import java.nio.ByteBuffer;
@@ -25,11 +26,11 @@ public class TofUtil {
         }
     }
 
-    public TofArrays parseTof(ARImage imgTOF) {
+    public TofArrays parseTof(ArImage imgTOF) {
 
         // Buffers for storing TOF output
         TofArrays arrays = new TofArrays(imgTOF.getWidth() * imgTOF.getHeight());
-        ARImage.Plane plane = imgTOF.getPlanes()[0];
+        ArImage.Plane plane = imgTOF.getPlanes()[0];
         ShortBuffer shortDepthBuffer = plane.getBuffer().asShortBuffer();
 
         int stride = plane.getRowStride();

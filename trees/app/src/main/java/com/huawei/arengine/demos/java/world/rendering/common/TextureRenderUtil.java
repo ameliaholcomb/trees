@@ -8,7 +8,8 @@ import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.util.Log;
 
-import com.huawei.hiar.ARFrame;
+//import com.huawei.hiar.ARFrame;
+import com.google.ar.core.Frame;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -141,7 +142,7 @@ public class TextureRenderUtil {
      *
      * @param frame ARFrame
      */
-    public void onDrawFrame(ARFrame frame) {
+    public void onDrawFrame(Frame frame) {
         ShaderUtil.checkGlError(TAG, "before draw");
         if (frame == null) {
             return;

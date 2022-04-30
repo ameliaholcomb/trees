@@ -7,9 +7,12 @@ from scipy.ndimage import interpolation
 
 import processor
 
+
+# TODO these need to be changed to correct resolution
 SHAPE = (360, 480)
 TOF_SHAPE = (180, 240)
 RGB_SHAPE = (640, 480)
+
 
 def run(depth_arr, rgb_arr):
 

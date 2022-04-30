@@ -14,28 +14,39 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import com.huawei.hiar.ARImage;
+//import com.huawei.hiar.ARImage;
+import com.google.ar.core.ArImage;
+
 import com.trees.activities.ImageCaptureActivity;
+
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextDisplayUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.TextureRenderUtil;
-import com.huawei.hiar.ARCamera;
-import com.huawei.hiar.ARFrame;
-import com.huawei.hiar.ARLightEstimate;
-import com.huawei.hiar.ARPlane;
-import com.huawei.hiar.ARSession;
-import com.huawei.hiar.ARTrackable;
+
+//import com.huawei.hiar.ARCamera;
+//import com.huawei.hiar.ARFrame;
+//import com.huawei.hiar.ARLightEstimate;
+//import com.huawei.hiar.ARPlane;
+//import com.huawei.hiar.ARSession;
+//import com.huawei.hiar.ARTrackable;
+
+import com.google.ar.core.Camera;
+import com.google.ar.core.Frame;
+import com.google.ar.core.LightEstimate;
+import com.google.ar.core.Plane;
+import com.google.ar.core.Session;
+import com.google.ar.core.Trackable;
+import com.google.ar.core.TrackingState;
+
 import com.trees.common.helpers.ImageUtil;
 import com.trees.common.helpers.TofUtil;
 import com.trees.common.pyi.ImageProcessorInterface;
-
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-
 
 /**
  * This class shows how to render the data obtained through AREngine.
@@ -52,7 +63,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
 
     private static final float MATRIX_SCALE_SY = -1.0f;
 
-    private ARSession mSession;
+    private Session mSession;
 
     private ImageCaptureActivity mActivity;
 
@@ -93,7 +104,7 @@ public class RenderUtil implements GLSurfaceView.Renderer {
      *
      * @param arSession ARSession.
      */
-    public void setArSession(ARSession arSession) {
+    public void setArSession(Session arSession) {
         if (arSession == null) {
             Log.e(TAG, "setSession error, arSession is null!");
             return;
@@ -142,13 +153,13 @@ public class RenderUtil implements GLSurfaceView.Renderer {
         return captureFuture;
     }
 
-    private void maybeCaptureImage(ARFrame frame) {
+    private void maybeCaptureImage(Frame frame) {
         if (captureFuture == null) {
             return;
         }
         try (
                 Image imgRGB = frame.acquireCameraImage();
-                ARImage imgTOF = (ARImage) frame.acquireDepthImage();
+                ArImage imgTOF = (ArImage) frame.acquireDepthImage();
             ) {
             ImageProcessorInterface.ImageRaw ret = new ImageProcessorInterface.ImageRaw();
             ret.rgbMat = ImageUtil.imageToByteArray(imgRGB);
@@ -177,29 +188,29 @@ public class RenderUtil implements GLSurfaceView.Renderer {
 
         try {
             mSession.setCameraTextureName(mTextureRenderUtil.getExternalTextureId());
-            ARFrame arFrame = mSession.update();
-            ARCamera arCamera = arFrame.getCamera();
+            Frame arFrame = mSession.update();
+            Camera arCamera = arFrame.getCamera();
             maybeCaptureImage(arFrame);
 
 
-            // ARCameraConfig arCameraConfig = mSession.getCameraConfig();
+//            CameraConfig arCameraConfig = mSession.getCameraConfig();
             mTextureRenderUtil.onDrawFrame(arFrame);
 
             StringBuilder sb = new StringBuilder();
             updateMessageData(sb);
             mTextDisplayUtil.onDrawFrame(sb);
 
-
-            for (ARPlane plane : mSession.getAllTrackables(ARPlane.class)) {
-                if (plane.getType() != ARPlane.PlaneType.UNKNOWN_FACING
-                        && plane.getTrackingState() == ARTrackable.TrackingState.TRACKING) {
-                    hideLoadingMessage();
-                    break;
-                }
-            }
+//
+//            for (Plane plane : mSession.getAllTrackables(Plane.class)) {
+//                if (plane.getType() != Plane.Type.UNKNOWN_FACING
+//                        && plane.getTrackingState() == TrackingState.TRACKING) {
+//                    hideLoadingMessage();
+//                    break;
+//                }
+//            }
             float lightPixelIntensity = 1;
-            ARLightEstimate lightEstimate = arFrame.getLightEstimate();
-            if (lightEstimate.getState() != ARLightEstimate.State.NOT_VALID) {
+            LightEstimate lightEstimate = arFrame.getLightEstimate();
+            if (lightEstimate.getState() != LightEstimate.State.NOT_VALID) {
                 lightPixelIntensity = lightEstimate.getPixelIntensity();
             };
 

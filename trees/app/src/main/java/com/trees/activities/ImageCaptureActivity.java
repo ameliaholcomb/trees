@@ -29,14 +29,32 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.ar.core.ArCoreApk;
+import com.google.ar.core.Session;
+import com.google.ar.core.CameraConfig;
+import com.google.ar.core.CameraConfigFilter;
+import com.google.ar.core.Config;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
+import com.google.ar.core.exceptions.UnavailableApkTooOldException;
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 import com.trees.common.helpers.CameraPermissionHelper;
 import com.trees.common.helpers.ImageStore;
 import com.huawei.arengine.demos.java.world.rendering.RenderUtil;
 import com.huawei.arengine.demos.java.world.rendering.common.DisplayRotationUtil;
-import com.huawei.hiar.AREnginesApk;
-import com.huawei.hiar.ARSession;
-import com.huawei.hiar.ARWorldTrackingConfig;
-import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
+
+
+// TODO: figure out why this doesn't work
+//import com.google.ar.core.examples.java.common.helpers.DepthSettings;
+
+
+//import com.huawei.hiar.AREnginesApk;
+//import com.huawei.hiar.ARSession;
+//import com.huawei.hiar.ARWorldTrackingConfig; //this one is missing in ARCore
+//import com.huawei.hiar.exceptions.ARCameraNotAvailableException;
+
 import com.trees.common.helpers.ImageStoreInterface;
 import com.trees.common.helpers.StoragePermissionHelper;
 import com.trees.common.pyi.ImageProcessorInterface;
@@ -47,7 +65,8 @@ import com.trees.model.ImageViewModelFactory;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import java.util.List;
+import java.util.EnumSet;
 
 public class ImageCaptureActivity extends AppCompatActivity {
     private static final String TAG = ImageCaptureActivity.class.getSimpleName();
@@ -63,8 +82,11 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     private ImageViewModel imageModel;
 
+//    trying to copy arcore example
+    private boolean installRequested;
+
     // AR session
-    private ARSession arSession = null;
+    private Session arSession = null;
     // RenderUtil for rendering
     private RenderUtil renderUtil = null;
     private boolean isRemindInstall = true;
@@ -74,6 +96,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
     private GLSurfaceView surfaceView;
     // App context, to be assigned in onCreate
     private Context context;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,48 +155,78 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
         surfaceView.onResume();
 
         if (arSession == null) {
+            Exception exception = null;
+            String message = null;
             try {
-                // Request to install arengine server. If it is already installed or
-                // the user chooses to install it, it will work normally. Otherwise, set isRemindInstall to false.
-                requestedInstall();
+//                // Request to install arcore server. If it is already installed or
+//                // the user chooses to install it, it will work normally. Otherwise, set isRemindInstall to false.
+//                requestedInstall();
+//
+//                // If the user rejects the installation, isRemindInstall is false.
+//                if (!isRemindInstall) {
+//                    return;
+//                }
 
-                // If the user rejects the installation, isRemindInstall is false.
-                if (!isRemindInstall) {
-                    return;
+                switch (ArCoreApk.getInstance().requestInstall(this, !installRequested)) {
+                    case INSTALL_REQUESTED:
+                        installRequested = true;
+                        return;
+                    case INSTALLED:
+                        break;
                 }
-                arSession = new ARSession(this);
-                ARWorldTrackingConfig config = new ARWorldTrackingConfig(arSession);
 
-                int supportedSemanticMode = arSession.getSupportedSemanticMode();
-                Log.d(TAG, "supportedSemanticMode:" + supportedSemanticMode);
-                if (supportedSemanticMode != ARWorldTrackingConfig.SEMANTIC_NONE) {
-                    Log.d(TAG, "supported mode:" + supportedSemanticMode);
-                    config.setSemanticMode(supportedSemanticMode);
-                }
-                arSession.configure(config);
-
+                // Create the session.
+                arSession = new Session(/* context= */ this);
+                configureSession();
                 renderUtil.setArSession(arSession);
-            } catch (Exception capturedException) {
-                Log.e(TAG, "Unable to create AR session", capturedException);
+            } catch (UnavailableArcoreNotInstalledException
+                    | UnavailableUserDeclinedInstallationException e) {
+                message = "Please install ARCore";
+                exception = e;
+            } catch (UnavailableApkTooOldException e) {
+                message = "Please update ARCore";
+                exception = e;
+            } catch (UnavailableSdkTooOldException e) {
+                message = "Please update this app";
+                exception = e;
+            } catch (UnavailableDeviceNotCompatibleException e) {
+                message = "This device does not support AR";
+                exception = e;
+            } catch (Exception e) {
+                message = "Failed to create AR session";
+                exception = e;
             }
+
+//            if (message != null) {
+//                messageSnackbarHelper.showError(this, message);
+//                Log.e(TAG, "Exception creating session", exception);
+//                return;
+//            }
         }
+
+        // Note that order matters - see the note in onPause(), the reverse applies here.
         try {
             arSession.resume();
-        } catch (ARCameraNotAvailableException e) {
-            Toast.makeText(this, "Camera open failed, please restart the app", Toast.LENGTH_LONG).show();
-            arSession = null;
-            return;
         }
-        displayRotationUtil.registerDisplayListener();
+            // To record a live camera session for later playback, call
+            // `session.startRecording(recordingConfig)` at anytime. To playback a previously recorded AR
+            // session instead of using the live camera feed, call
+            // `session.setPlaybackDatasetUri(Uri)` before calling `session.resume()`. To
+            // learn more about recording and playback, see:
+            // https://developers.google.com/ar/develop/java/recording-and-playback
+             catch(CameraNotAvailableException e){
+                Toast.makeText(this, "Camera open failed, please restart the app", Toast.LENGTH_LONG).show();
+                arSession = null;
+                return;
+            }
+            displayRotationUtil.registerDisplayListener();
     }
-
 
     @Override
     public void onPause() {
@@ -216,18 +269,16 @@ public class ImageCaptureActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-
-    private void requestedInstall() {
-        AREnginesApk.ARInstallStatus installStatus = AREnginesApk.requestInstall(this, isRemindInstall);
-        switch (installStatus) {
-            case INSTALL_REQUESTED:
-                isRemindInstall = false;
-                break;
-            case INSTALLED:
-                break;
-        }
-    }
-
+//    private void requestedInstall() {
+//        ArCoreApk.InstallStatus installStatus = ArCoreApk.getInstance().requestInstall(this, isRemindInstall);
+//        switch (installStatus) {
+//            case INSTALL_REQUESTED:
+//                isRemindInstall = false;
+//                break;
+//            case INSTALLED:
+//                break;
+//        }
+//    }
 
     public void onCaptureImage(View view) {
         Future<ImageProcessorInterface.ImageRaw> future = renderUtil.captureNextFrame();
@@ -252,7 +303,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
     public void onSamplePlus(View view) {
         imageModel.incrementSampleNumber();
     }
-
 
     // Minus button for the sample being read
     public void onSampleMinus(View view) {
@@ -282,4 +332,27 @@ public class ImageCaptureActivity extends AppCompatActivity {
         imageStore.deleteFiles();
     }
 
+    /** Configures the session with feature settings. */
+//    TODO: figure out what the correct depth settings are
+    private void configureSession() {
+        Config config = arSession.getConfig();
+        config.setLightEstimationMode(Config.LightEstimationMode.ENVIRONMENTAL_HDR);
+
+        if (arSession.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+            config.setDepthMode(Config.DepthMode.AUTOMATIC);
+        } else {
+            config.setDepthMode(Config.DepthMode.DISABLED);
+        }
+
+        // Create a camera config filter for the session.
+        CameraConfigFilter filter = new CameraConfigFilter(arSession);
+        // Return only camera configs that will not use the depth sensor.
+        filter.setDepthSensorUsage(EnumSet.of(CameraConfig.DepthSensorUsage.DO_NOT_USE));
+        List<CameraConfig> cameraConfigList = arSession.getSupportedCameraConfigs(filter);
+
+        // element 0 contains the camera config that best matches the specified filter
+        // settings.
+        arSession.setCameraConfig(cameraConfigList.get(0));
+        arSession.configure(config);
+    }
 }

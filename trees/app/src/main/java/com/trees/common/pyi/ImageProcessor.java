@@ -17,7 +17,8 @@ import java.util.Objects;
 
 public class ImageProcessor implements ImageProcessorInterface {
 
-    int[] SHAPE = new int[]{360, 480}; /* height x width */
+//    TODO how to not hard-code this
+    int[] SHAPE = new int[]{240, 320}; /* height x width */
 
     @Override
     public ImageResult processImage(Activity context, ImageRaw raw) {
