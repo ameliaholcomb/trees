@@ -31,7 +31,11 @@ public interface ImageProcessorInterface {
 
     class ImageRaw {
         public byte[] rgbMat;
+        public int rgbWidth;
+        public int rgbHeight;
         public TofUtil.TofArrays tofMat;
+        public int tofWidth;
+        public int tofHeight;
     }
 
     ImageResult processImage(Activity context, ImageRaw raw);

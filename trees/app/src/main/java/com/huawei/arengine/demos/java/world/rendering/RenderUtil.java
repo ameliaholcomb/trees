@@ -48,6 +48,8 @@ import java.util.concurrent.Future;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import java.util.Arrays;
+
 /**
  * This class shows how to render the data obtained through AREngine.
  *
@@ -163,7 +165,17 @@ public class RenderUtil implements GLSurfaceView.Renderer {
             ) {
             ImageProcessorInterface.ImageRaw ret = new ImageProcessorInterface.ImageRaw();
             ret.rgbMat = ImageUtil.imageToByteArray(imgRGB);
+            ret.rgbWidth = imgRGB.getWidth();
+            ret.rgbHeight = imgRGB.getHeight();
+            ret.tofWidth = imgTOF.getWidth();
+            ret.tofHeight = imgTOF.getHeight();
+//            Log.e("SOFIJA", "image height val" + Integer.toString(imgTOF.getHeight()));
+//            Log.e("SOFIJA", "image width val" + Integer.toString(imgTOF.getWidth()));
+
             TofUtil.TofArrays tofArrays = new TofUtil().parseTof(imgTOF);
+//            Log.e("SOFIJA", "xBuffer values" + Arrays.toString(tofArrays.xBuffer));
+//            Log.e("SOFIJA", "dBuffer values" + Arrays.toString(tofArrays.dBuffer));
+
             ret.tofMat = tofArrays;
             captureFuture.complete(ret);
         } catch (Throwable t) {

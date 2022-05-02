@@ -13,6 +13,7 @@ import com.trees.common.helpers.ImageStoreInterface;
 import com.trees.common.pyi.ImageProcessorInterface;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class ImageViewModel extends ViewModel {
     private static final String LOG_TAG = "AMELIA";
@@ -73,6 +74,9 @@ public class ImageViewModel extends ViewModel {
 
     public void captureImage(Activity context, ImageProcessorInterface.ImageRaw raw) {
         ImageProcessorInterface.ImageResult imageResult = imageProcessor.processImage(context, raw);
+
+//        Log.e("SOFIJA", "image result" + Arrays.toString(imageResult.DepthImage.dBuffer));
+
         currentCapture.setValue(imageResult);
     }
 

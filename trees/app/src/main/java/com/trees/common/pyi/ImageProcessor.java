@@ -2,6 +2,7 @@ package com.trees.common.pyi;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.chaquo.python.PyObject;
@@ -11,6 +12,7 @@ import com.trees.activities.R;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,7 +37,8 @@ public class ImageProcessor implements ImageProcessorInterface {
         ImageResult imageResult = new ImageResult();
         byte[] displayImage;
         try {
-            List<PyObject> obj = ImProcModule.callAttrThrows("run", pyDepth, pyRgb).asList();
+            List<PyObject> obj = ImProcModule.callAttrThrows("run", pyDepth, pyRgb,
+                    raw.rgbWidth, raw.rgbHeight, raw.tofWidth, raw.tofHeight).asList();
             displayImage = obj.get(0).toJava(byte[].class);
             float estDepth = obj.get(1).toJava(float.class);
             float estDiameter = obj.get(2).toJava(float.class);
@@ -45,6 +48,8 @@ public class ImageProcessor implements ImageProcessorInterface {
             imageResult.DisplayImage.copyPixelsFromBuffer(display);
             imageResult.RGBImage = raw.rgbMat;
             imageResult.DepthImage = raw.tofMat;
+
+            Log.e("SOFIJA", "image result depth" + Arrays.toString(imageResult.DepthImage.dBuffer));
             imageResult.Depth = estDepth;
             imageResult.Diameter = estDiameter;
 
@@ -57,6 +62,7 @@ public class ImageProcessor implements ImageProcessorInterface {
                 Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();
             } else {
                 throwable.printStackTrace();
+                Log.e("SOFIJA", "throwable", throwable);
             }
         }
         return imageResult;

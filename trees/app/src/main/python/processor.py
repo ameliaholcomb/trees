@@ -7,9 +7,6 @@ from scipy import stats
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
-SHAPE = (360, 480)
-CENTER_BOUNDS = (int(SHAPE[1] / 3), 2 * int(SHAPE[1] / 3))
-
 # Used for trunk boundary line scans
 PERCENT_INLIERS_HIGH = 0.60
 PERCENT_INLIERS_LOW = 0.50
@@ -227,6 +224,12 @@ def process(depth, rgb):
             depth (float): estimated depth of trunk
             width (float): estimated trunk diameter
     """
+
+
+    global SHAPE
+    SHAPE = (rgb.shape[0], rgb.shape[1])
+    global CENTER_BOUNDS
+    CENTER_BOUNDS = (int(SHAPE[1]/3), 2 * int(SHAPE[1]/3))
 
     # get filtered depth data and filtered rgb-d image
     # depth data from center third of image

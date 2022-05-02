@@ -1,34 +1,43 @@
 import io
 import numpy as np
 from skimage import io as skio
-from skimage import img_as_ubyte, transform
+from skimage import img_as_ubyte, img_as_float, transform
 from scipy.ndimage import interpolation
+
 
 import processor
 
 
 # TODO these need to be changed to correct resolution
-SHAPE = (360, 480)
-TOF_SHAPE = (180, 240)
-RGB_SHAPE = (640, 480)
+# SHAPE = (360, 480)
+# TOF_SHAPE = (120, 160)
+# RGB_SHAPE = (640, 480)
 
 
-def run(depth_arr, rgb_arr):
+def run(depth_arr, rgb_arr, rgb_width, rgb_height, depth_width, depth_height):
+
+    TOF_SHAPE = (depth_height, depth_width)
+    RGB_SHAPE = (rgb_height, rgb_width)
+
+    print(f"TOF_SHAPE: {TOF_SHAPE}")
+    print(f"RGB_SHAPE: {RGB_SHAPE}")
 
     # Read images and resize so they can be directly overlaid.
     depth = np.array(depth_arr, dtype=np.float64).reshape(TOF_SHAPE)
     scale_factor = 2
-    depth = np.kron(depth, np.ones((scale_factor, scale_factor)))
+#     depth = np.kron(depth, np.ones((scale_factor, scale_factor)))
+    depth = transform.resize(depth, RGB_SHAPE)
+    rgb = img_as_float(skio.imread(io.BytesIO(rgb_arr)))
 
-    rgb = transform.resize(skio.imread(io.BytesIO(rgb_arr)), SHAPE)
+#     rgb = transform.resize(skio.imread(io.BytesIO(rgb_arr)), SHAPE)
 
     try:
         angle, left, right, est_depth, est_width = processor.process(depth, rgb)
     except (processor.NoTrunkFoundError, processor.MissingDepthError) as e:
-        return bytes(img_as_ubyte(rgb_disp)), 0, 0
+        return bytes(img_as_ubyte(rgb)), 0, 0
 
     # Prepare display image
-    bounds = np.zeros(SHAPE)
+    bounds = np.zeros(RGB_SHAPE)
     bounds[:, left] = 1
     bounds[:, right] = 1
     bounds_rot = interpolation.rotate(bounds, -angle, reshape=False)
