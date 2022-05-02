@@ -20,7 +20,7 @@ import java.util.Objects;
 public class ImageProcessor implements ImageProcessorInterface {
 
 //    TODO how to not hard-code this
-    int[] SHAPE = new int[]{240, 320}; /* height x width */
+    int[] SHAPE = new int[]{480, 640}; /* height x width */
 
     @Override
     public ImageResult processImage(Activity context, ImageRaw raw) {
@@ -49,7 +49,7 @@ public class ImageProcessor implements ImageProcessorInterface {
             imageResult.RGBImage = raw.rgbMat;
             imageResult.DepthImage = raw.tofMat;
 
-            Log.e("SOFIJA", "image result depth" + Arrays.toString(imageResult.DepthImage.dBuffer));
+            Log.e("SOFIJA", "number of bytes in display image" + imageResult.DisplayImage.getByteCount());
             imageResult.Depth = estDepth;
             imageResult.Diameter = estDiameter;
 
@@ -62,7 +62,7 @@ public class ImageProcessor implements ImageProcessorInterface {
                 Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();
             } else {
                 throwable.printStackTrace();
-                Log.e("SOFIJA", "throwable", throwable);
+                Log.e("SOFIJA", "throwable log", throwable);
             }
         }
         return imageResult;
