@@ -1,15 +1,30 @@
-import math
 import numpy as np
+from skimage import measure
 from scipy.ndimage import interpolation
+from scipy import spatial
 from scipy import stats
 from sklearn.decomposition import PCA
 
 SHAPE = (360, 480)
 CENTER_BOUNDS = (int(SHAPE[1]/3), 2 * int(SHAPE[1]/3))
 
+# Used for trunk boundary line scans
+PERCENT_INLIERS_HIGH = 0.60
+PERCENT_INLIERS_LOW = 0.50
+
+# Used to identify too-small
+# depth image components
+ALPHA = 300
+
+# Used to identify appropriately dense
+# filtered depth image shapes
+BETA = 0.60
+
+# Camera calibration constants
 CALIB_DEPTH = 1.0  # Units in m
-CALIB_PIXEL_PER_METER = 356.25  # Units in m
-WIDTH_SCALE_FACTOR = 1.0  # scale the width based on current observation, may not be the most accurate
+CALIB_PIXEL_PER_METER = 356.25  # Units in p
+WIDTH_SCALE_FACTOR = 1.018  # scale the width based on current observation,
+# may not be the most accurate
 
 
 class Error(Exception):
@@ -20,35 +35,138 @@ class MissingDepthError(Error):
 	"""Exception raised when the capture has insufficient depth values."""
 	message = "Unable to process image, no depth points found"
 
-def find_boundaries(rgbd, depth_filtered):
-	angle = get_rotate_angle(rgbd[:,CENTER_BOUNDS[0]:CENTER_BOUNDS[1],:])
+class NoTrunkFoundError(Error):
+	"""Exception raised when no trunk is found in the image."""
+	message = "Unable to find trunk in depth image"
 
-	depth_filtered_center_mask = (depth_filtered[:, CENTER_BOUNDS[0]:CENTER_BOUNDS[1]] > 0) * 1
-	depth_filtered_center_mask_rotated = interpolation.rotate(depth_filtered_center_mask, angle, reshape=False)
+def denoise(depth):
+	""" Remove outlier components from filtered depth image."""
 
+	# label each pixel by connected component of image
+	# The 0th label will contain background pixels (pixels with depth value 0)
+	labeled = measure.label(depth > 0, connectivity=1, background=0)
+	labels, counts = np.unique(labeled, return_counts=True)
+
+	# Zero out depth points in tiny connected components (fewer than ALPHA pixels)
+	# tiny = labels_target[np.where(counts[labels_target] < ALPHA)]
+	tiny = labels[np.where(counts[labels] < ALPHA)]
+	depth[np.isin(labeled, tiny)] = 0.0
+
+	# If the remaining components are not sufficiently "dense" to likely represent
+	# a tree trunk, remove them  until they are.
+
+	# Relabel.
+	labeled = measure.label(depth > 0, connectivity=1, background=0)
+	labels, counts = np.unique(labeled, return_counts=True)
+
+	# Omit the background.
+	if labels[0] == 0:
+		labels = labels[1:]
+		counts = counts[1:]
+
+	# If there was only background left, this is a bad image
+	if len(labels) == 0:
+		raise NoTrunkFoundError
+
+	# Sort components by their distance from the mean of the target component
+	# This is the order in which we will remove them, if necessary.
+	# Find the mean x-value of each component:
+	means = np.zeros(labels.shape)
+	for l in labels:
+		xs = np.argwhere(labeled == l)[:,1]
+		means[l-1] = np.mean(xs)
+	# The target component is the largest component
+	target_component = labels[np.argmax(counts)]
+	target_mean = means[target_component - 1]
+	diff_from_target = np.abs(means - target_mean)
+	sorted_inds = diff_from_target.argsort()
+	sorted_labels = labels[sorted_inds[::-1]]
+
+	inlier_area = np.sum(counts)
+	for i in range(len(sorted_labels) - 1):   # Must keep at least one component
+		# Check that the convex hull of the components is sufficiently dense in trunk inliers
+		# by examining the ratio of the pixel area in remaining components
+		# to the total area of the convex hull
+		# ConvexHull computed using http://www.qhull.org/
+		hull = spatial.ConvexHull(np.argwhere(depth > 0))
+		hull_density = inlier_area / hull.volume
+		if hull_density > BETA:
+			return depth
+		else:
+			# If not, remove the component whose x-mean is furhest from the target component
+			remove = sorted_labels[i]
+			depth[labeled == remove] = 0.0
+			labeled[labeled == remove] = 0
+			inlier_area = inlier_area - counts[remove - 1]
+
+	return depth
+
+def find_boundaries(depth_denoise, depth_filtered):
+	""" Find trunk boundaries on denoised and filtered depth image."""
+	angle = get_rotate_angle(depth_denoise)
+
+	depth_filtered_mask = (depth_filtered > 0) * 1
+	depth_filtered_mask_rotated = interpolation.rotate(depth_filtered_mask * 1, angle, reshape=False)
+	depth_filtered_mask_rotated = (np.abs(depth_filtered_mask_rotated) > 0.003) * 1
+
+	# Move in from the left side until reaching a vertical scanline
+	# with at least PERCENT_INLIERS_HIGH percent of points in the filtered
+	# trunk range.
 	left_boundary = 0
-	for j in range(int(SHAPE[1] / 3)):
-		if np.bincount(depth_filtered_center_mask_rotated[:,j]).argmax() == 1:
-			left_boundary = j + int(SHAPE[1] / 3)
+	for j in range(SHAPE[1]):
+		counts = np.bincount(depth_filtered_mask_rotated[:,j])
+		if len(counts) < 2:
+			continue
+		if counts[1]/(counts[0] + counts[1]) > PERCENT_INLIERS_HIGH:
+			left_boundary = j
+			break
+	# Starting from the left boundary, move out to the left again until
+	# the first vertical scanline with less than PERCENT_INLIERS_LOW percent
+	# of points in the filtered trunk range. Choose the boundary just to the right.
+	for j in range(left_boundary - 1, -1, -1):
+		counts = np.bincount(depth_filtered_mask_rotated[:,j])
+		if len(counts) < 2:
+			continue
+		if counts[1]/(counts[0] + counts[1]) < PERCENT_INLIERS_LOW:
+			left_boundary = j + 1
 			break
 
+	# Move in from the right side until reaching a vertical scanline
+	# with at least PERCENT_INLIERS_HIGH percent of points in the filtered
+	# trunk range.
 	right_boundary = 0
-	for j in range(int(SHAPE[1] / 3) - 1, -1, -1):
-		if np.bincount(depth_filtered_center_mask_rotated[:,j]).argmax() == 1:
-			right_boundary = j + int(SHAPE[1] / 3)
+	for j in range(SHAPE[1] - 1, -1, -1):
+		counts = np.bincount(depth_filtered_mask_rotated[:,j])
+		if len(counts) < 2:
+			continue
+		if counts[1]/(counts[0] + counts[1]) > PERCENT_INLIERS_HIGH:
+			right_boundary = j
+			break
+
+	# Starting from the right boundary, move out to the right again until
+	# the first vertical scanline with less than PERCENT_INLIERS_LOW percent
+	# of points in the filtered trunk range. Choose the boundary just to the left.
+	for j in range(right_boundary, SHAPE[1]):
+		counts = np.bincount(depth_filtered_mask_rotated[:,j])
+		if len(counts) < 2:
+			continue
+		if counts[1]/(counts[0] + counts[1]) < PERCENT_INLIERS_LOW:
+			right_boundary = j - 1
 			break
 
 	return angle, left_boundary, right_boundary
 
 # rotates the matrix to vertical based on binary encoding
 def get_rotate_angle(matrix):
-	x = np.array(np.where(matrix[:,:,3] > 0)).T
+	""" Compute angle to rotate binary encoded image to vertical. """
+	x = np.array(np.where(matrix > 0)).T
 
 	# Perform a PCA and compute the angle of the first principal axes
 	pca = PCA(n_components=2).fit(x)
 
 	# Angle of the eigenvectors to the horizontal axis
-	angles = np.arctan2(*pca.components_)
+	# NOTE: numpy expects ([y-values], [x-values])
+	angles = np.arctan2(pca.components_[:,1], pca.components_[:,0])
 	angles = np.rad2deg(angles)
 
 	# We are using the eigenvector to define an axis,
@@ -60,7 +178,7 @@ def get_rotate_angle(matrix):
 	# PCA returns two eigenvectors.
 	# In most cases, the first runs along the principal axis of the trunk.
 	# However, sometimes we get the perpendicular eigenvector.
-	# We assume that the tree is relatively upright, 
+	# We assume that the tree is relatively upright,
 	# and the correct eigenvector is within 60 degrees of vertical.
 	# (See also Kour et al.)
 	if abs(90 - angles[0]) < 60:
@@ -74,9 +192,8 @@ def get_rotate_angle(matrix):
 	return 90 - angle
 
 
-# calculate the final width
-def get_estimated_width(depth, pixels, angle):
-	return abs((depth * pixels) / (CALIB_DEPTH * CALIB_PIXEL_PER_METER * math.cos(np.deg2rad(angle)))) * WIDTH_SCALE_FACTOR
+def get_estimated_width(depth, pixels):
+	return abs(depth * pixels) / ((CALIB_DEPTH * CALIB_PIXEL_PER_METER - (pixels / 4)))
 
 def process(depth, rgb):
 	"""Process depth and rgb image to find trunk diameter.
@@ -104,20 +221,16 @@ def process(depth, rgb):
 
 	# zero out depth values that are not within 10% of the mode center depth
 	depth_approx = 0.1 * mode_depth
-	depth_filtered = np.copy(depth)
+	depth_filtered = depth
 	depth_filtered[np.abs(depth - mode_depth) > depth_approx] = 0.0
 
-	# create rgb-d image with filtered depth values
-	# note that the fourth axis in the rgb image will be interpreted as an alpha channel,
-	# so all the zero-valued depths will be partly transparent
-	# when the rgb image is shown.
-	rgbd = np.append(rgb, depth_filtered[:,:,np.newaxis], axis=2)
+	# denoise
+	depth_denoise = denoise(np.copy(depth_filtered))
 
 	# rotate image to fit the tree vertically and approximate with vertical lines
-	angle, left, right = find_boundaries(rgbd, depth_filtered)
+	angle, left, right = find_boundaries(depth_denoise, depth_filtered)
 
 	# calculate the final estimated width
-	estimated_width = get_estimated_width(mode_depth, right - left, angle)
+	estimated_width = get_estimated_width(mode_depth, right - left)
 
 	return angle, left, right, mode_depth, estimated_width
-
