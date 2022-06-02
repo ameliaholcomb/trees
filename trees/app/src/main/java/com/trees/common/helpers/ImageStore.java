@@ -23,7 +23,7 @@ public class ImageStore implements ImageStoreInterface {
     private String filepath =
             android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Tree";
     private final String FOLDER = "/samples";
-    private final String PREFIX = "Capture_Sample_";
+    private final String PREFIX = "Capture_Sample_ToF_";
 
     public ImageStore() { }
 
