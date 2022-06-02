@@ -18,6 +18,8 @@ package com.trees.activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
@@ -89,7 +91,6 @@ public class ImageCaptureActivity extends AppCompatActivity {
             CameraPermissionHelper.requestCameraPermission(this);
         }
 
-        // TODO: Deal with this in a way Evan approves of
         ImageProcessorInterface imageProcessor = new ImageProcessor();
         ImageStoreInterface imageStore = new ImageStore();
         ImageViewModelFactory imageViewModelFactory = new ImageViewModelFactory(

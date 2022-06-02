@@ -25,12 +25,14 @@ public class DrawingView extends SurfaceView implements SurfaceHolder.Callback {
     private void drawLines(SurfaceHolder holder, Canvas canvas) {
 
         Paint paint = new Paint();
-        paint.setColor(Color.BLUE);
+        paint.setColor(Color.RED);
         Rect frame = holder.getSurfaceFrame();
         long x1 =  Math.round(frame.width()/3.0);
         long x2 = Math.round(2 * frame.width()/3.0);
         canvas.drawLine(x1, 0, x1, frame.height(), paint);
+        canvas.drawLine(x1 - 1, 0, x1 - 1, frame.height(), paint);
         canvas.drawLine(x2, 0, x2, frame.height(), paint);
+        canvas.drawLine(x2 - 1, 0, x2 - 1, frame.height(), paint);
     }
 
     @Override

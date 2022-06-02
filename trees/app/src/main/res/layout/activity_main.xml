@@ -64,6 +64,8 @@
             android:ems="14"
             android:enabled="false"
             android:fontFamily="monospace"
+            android:textColor="#BC1E1E"
+            android:textColorHighlight="#DF4141"
             android:includeFontPadding="false"
             android:inputType="number"
             android:text="1" />
@@ -93,8 +95,8 @@
             android:text="Capture" />
 
     </RelativeLayout>
-    <androidx.fragment.app.FragmentContainerView
-        xmlns:android="http://schemas.android.com/apk/res/android"
+
+    <androidx.fragment.app.FragmentContainerView xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/fragment_container_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
