@@ -35,7 +35,7 @@ class SegModel(pl.LightningModule):
 
 
 # set random seed for reproducibility
-pl.seed_everything(21)  # cfg["program"]["seed"])
+pl.seed_everything(21)
 
 model = SegModel(
     in_channels=1,
@@ -48,12 +48,8 @@ model = SegModel(
 # loading and preparing model
 model = model.load_from_checkpoint("april_1_40.ckpt")
 
-# provide input sample
-#file_path = "data/test/samples/Capture_Sample_65_149"
-
 def run(depth): #depth is a np array (360, 480)
-#img = np.loadtxt(file_path, delimiter=",", usecols=range(0, 3))
-  img = depth.resize(120, 160) # check syntax
+  img = depth.resize(120, 160)
   transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([3.2749], [1.6713])])
   img = transform(img).float()
   img = F.pad(img, (0, 0, 4, 4), "constant", 0)
