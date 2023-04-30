@@ -20,7 +20,7 @@ android {
         }
         resValue "string", "maps_api_key", (secureProps.getProperty("MAPS_API_KEY") ?: "")
         ndk {
-//            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+           // abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
             abiFilters "arm64-v8a"
         }
         python {

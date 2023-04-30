@@ -283,7 +283,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
     public void onCaptureImage(View view) {
         Future<ImageProcessorInterface.ImageRaw> future = renderUtil.captureNextFrame();
         try {
-            ImageProcessorInterface.ImageRaw raw = future.get();
+            ImageProcessorInterface.ImageRaw raw = future.get();//replace
             imageModel.captureImage(this, raw);
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
