@@ -19,7 +19,7 @@ import java.util.Objects;
 
 public class ImageProcessor implements ImageProcessorInterface {
 
-//    TODO how to not hard-code this
+    //    TODO how to not hard-code this
     int[] SHAPE = new int[]{480, 640}; /* height x width */
 
     @Override
@@ -43,6 +43,15 @@ public class ImageProcessor implements ImageProcessorInterface {
             float estDepth = obj.get(1).toJava(float.class);
             float estDiameter = obj.get(2).toJava(float.class);
 
+            // get log info
+            String logInfo = obj.get(3).toJava(String.class);
+            System.out.println("getdata");
+            // get plot
+            /*byte[] rgb_disp_plot = obj.get(4).toJava(byte[].class);
+            byte[] center_depth_plot = obj.get(5).toJava(byte[].class);*/
+
+            System.out.println("finished conversion");
+
             Buffer display = ByteBuffer.wrap(displayImage);
             imageResult.DisplayImage = Bitmap.createBitmap(SHAPE[1], SHAPE[0], Bitmap.Config.ARGB_8888);
             imageResult.DisplayImage.copyPixelsFromBuffer(display);
@@ -56,6 +65,13 @@ public class ImageProcessor implements ImageProcessorInterface {
             if (estDiameter == 0 && estDepth == 0) {
                 Toast.makeText(context, R.string.noDepthPoints, Toast.LENGTH_LONG).show();
             }
+
+            // log the info
+            Log.i("Miranda", "Log info:" + logInfo);
+            imageResult.LogInfo = logInfo;
+            // imageResult.RGBDispPlot = rgb_disp_plot;
+            // imageResult.CenterDepthPlot = center_depth_plot;
+
 
         } catch (Throwable throwable) {
             if (Objects.requireNonNull(throwable.getMessage()).contains("MissingDepthError")) {

@@ -2,6 +2,8 @@ import io
 import numpy as np
 from skimage import io as skio
 from skimage import img_as_ubyte, img_as_float, transform
+from scipy import ndimage
+from scipy.ndimage import interpolation
 import matplotlib.pyplot as plt
 
 import processor
@@ -17,20 +19,48 @@ def run(depth_arr, rgb_arr, rgb_width, rgb_height, depth_width, depth_height):
 
     # Read depth image and resize as if we were going to call processor.py
     depth = np.array(depth_arr, dtype=np.float64).reshape(TOF_SHAPE)
-    depth = transform.resize(depth, RGB_SHAPE)
-    rgb = np.reshape(skio.imread(io.BytesIO(rgb_arr)), RGB_SHAPE) # check if it works
-    preds = model.run(depth) # preds is (128, 160)
-    preds = transform.resize(preds, RGB_SHAPE) # resize
-    modified_depth = np.where(preds==0, 0, depth) # applies mask to depth
+    log_info = f"Depth array shape: {depth.shape}\n"
+    log_info += f"Maximum value in depth array: {np.max(depth)}\n"
 
-    angle, left, right, est_depth, est_width = processor.process(modified_depth, rgb)
+    # rgb = np.reshape(skio.imread(io.BytesIO(rgb_arr)), (*RGB_SHAPE, 3)) # check if it works
+    # scale_factor = 2
+    # depth = np.kron(depth, np.ones((scale_factor, scale_factor)))
+
+    rgb = transform.resize(skio.imread(io.BytesIO(rgb_arr)), RGB_SHAPE)
+
+    preds = model.run(depth) # preds is (128, 160)
+    preds = np.squeeze(preds)
+    mask = transform.resize(preds, TOF_SHAPE)
+    masked_depth = np.where(mask==0, 0, depth)
+    masked_depth_resized = transform.resize(masked_depth, RGB_SHAPE)
+
+    angle, left, right, est_depth, est_width, processor_log_info = processor.process(masked_depth_resized, rgb)
+
+    log_info += processor_log_info
+
+    log_info += f"Processed angle: {angle}, left: {left}, right: {right}\n"
 
 	# Prepare display image
     bounds = np.zeros(RGB_SHAPE)
     bounds[:,left] = 1
     bounds[:,right] = 1
     bounds_rot = interpolation.rotate(bounds, -angle, reshape=False)
-    rgb_disp = np.append(rgb, modified_depth[:,:,np.newaxis], axis=2)
-    rgb_disp[np.where(np.abs(bounds_rot) > 0.1 )] = [0.0, 1.0, 0.0, 1.0]
+    ## bounds_rot = ndimage.rotate(bounds, -angle, reshape=False)
+    rgb_disp = np.append(rgb, masked_depth_resized[:,:,np.newaxis], axis=2)
 
-    return bytes(img_as_ubyte(rgb_disp)), est_depth, est_width
+    """
+    plot_image_io = io.BytesIO()
+    plt.hist(rgb_disp.ravel(), bins=256, color='blue', alpha=0.7)
+    plt.title("Distribution of rgb_disp values")
+    plt.savefig(plot_image_io, format='png')
+    rgb_disp_plot = plot_image_io.getvalue()
+    plot_image_io.close()
+    """
+
+    rgb_disp_norm = (rgb_disp - np.min(rgb_disp)) / (np.max(rgb_disp) - np.min(rgb_disp))
+    ## rgb_disp = np.clip(rgb_disp, -1, 1)
+
+    rgb_disp_norm[np.where(np.abs(bounds_rot) > 0.1 )] = [0.0, 1.0, 0.0, 1.0]
+
+    ## return bytes(img_as_ubyte(rgb_disp)), est_depth, est_width
+    return bytes(img_as_ubyte(rgb_disp_norm)), est_depth, est_width, log_info

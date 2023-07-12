@@ -1,3 +1,4 @@
+import io
 import math
 import numpy as np
 from skimage import measure
@@ -237,11 +238,40 @@ def process(depth, rgb):
     if np.sum(center_depths) == 0:
         raise MissingDepthError
 
+    processor_log_info = f"Max value in center_depths: {np.max(center_depths)}\n"
+
+    """
+    if np.isnan(center_depths).any() or np.isinf(center_depths).any():
+        processor_log_info += "center_depths contains NaN or infinite values."
+    plot_image_io = io.BytesIO()
+    try:
+        center_depths_flat = center_depths.flatten()
+        sample_center_depths = np.random.choice(center_depths_flat, size=10000)
+        plt.hist(sample_center_depths, bins=200, alpha=0.7, label='center_depths')
+        plt.title("Center Depth values distribution")
+        plt.xlabel("Depth (m)")
+        plt.ylabel("Frequency")
+        plt.savefig(plot_image_io, format='png')
+    except Exception as e:
+        print(f"Exception occurred: {e}")
+    center_depth_plot = plot_image_io.getvalue()
+    plot_image_io.close()
+    """
+
     # Sensor range gives us a maximum of 5 meters away,
     # For now we'll try 3cm resolution
-    bins = np.arange(0.0, 5.0, 0.03)
+    bins = np.arange(0.0, 10.0, 0.03)
     digitized_center_depths = np.digitize(center_depths[center_depths != 0], bins)
-    mode_depth = bins[stats.mode(digitized_center_depths, axis=None).mode[0]]
+
+    mode_value = stats.mode(digitized_center_depths, axis=None).mode[0]
+    processor_log_info += f"Mode value in digitized_center_depths: {mode_value}\n"
+    print(processor_log_info)
+    mode_depth = bins[mode_value]
+    # Apply bias correction
+    mode_depth = (mode_depth + 0.0216) / 1.04
+
+    # mode_depth = bins[stats.mode(digitized_center_depths, axis=None).mode[0]]
+    processor_log_info += f"Mode depth: {mode_depth}\n"
 
     # zero out depth values that are not within 10% of the mode center depth
     depth_approx = 0.1 * mode_depth
@@ -257,4 +287,8 @@ def process(depth, rgb):
     # calculate the final estimated width
     estimated_width = get_estimated_width_2(mode_depth, right - left)
 
-    return angle, left, right, mode_depth, estimated_width
+    # Apply bias correction
+    estimated_width = (estimated_width + 0.0181) / 1.34
+
+
+    return angle, left, right, mode_depth, estimated_width, processor_log_info

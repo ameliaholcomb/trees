@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import torch.nn.functional as F
+import os
 
 from typing import Any, Dict, cast
 from torchvision import transforms
@@ -46,10 +47,13 @@ model = SegModel(
 )
 
 # loading and preparing model
-model = model.load_from_checkpoint("april_1_40.ckpt")
+current_dir = os.path.dirname(__file__)
+ckpt_path = os.path.join(current_dir, "april_1_40.ckpt")
+model = model.load_from_checkpoint(ckpt_path)
 
 def run(depth): #depth is a np array (360, 480)
-  img = depth.resize(120, 160)
+  ## img = depth.resize(120, 160)
+  img = np.resize(depth, (120, 160))
   transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([3.2749], [1.6713])])
   img = transform(img).float()
   img = F.pad(img, (0, 0, 4, 4), "constant", 0)
