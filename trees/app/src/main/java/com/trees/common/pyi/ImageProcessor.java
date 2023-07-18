@@ -67,7 +67,7 @@ public class ImageProcessor implements ImageProcessorInterface {
             }
 
             // log the info
-            Log.i("Miranda", "Log info:" + logInfo);
+            Log.i("IntermediateData", logInfo);
             imageResult.LogInfo = logInfo;
             // imageResult.RGBDispPlot = rgb_disp_plot;
             // imageResult.CenterDepthPlot = center_depth_plot;
