@@ -18,6 +18,7 @@ import java.util.Objects;
 
 
 public class ImageProcessor implements ImageProcessorInterface {
+    private static final String PROCESS_DATA_LOG_TAG = "IntermediateData";
 
     //    TODO how to not hard-code this
     int[] SHAPE = new int[]{480, 640}; /* height x width */
@@ -67,7 +68,7 @@ public class ImageProcessor implements ImageProcessorInterface {
             }
 
             // log the info
-            Log.i("IntermediateData", logInfo);
+            Log.i(PROCESS_DATA_LOG_TAG, logInfo);
             imageResult.LogInfo = logInfo;
             // imageResult.RGBDispPlot = rgb_disp_plot;
             // imageResult.CenterDepthPlot = center_depth_plot;
