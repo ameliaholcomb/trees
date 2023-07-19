@@ -20,10 +20,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -69,6 +72,12 @@ import java.util.List;
 import java.util.EnumSet;
 
 public class ImageCaptureActivity extends AppCompatActivity {
+
+    private Button startButton;
+    private Button captureButton;
+    private TextView timerTextView;
+    private CountDownTimer timer;
+
     private static final String TAG = ImageCaptureActivity.class.getSimpleName();
     private static final String LOG_TAG = "AMELIA";
     // Required for test run.
@@ -82,7 +91,7 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
     private ImageViewModel imageModel;
 
-//    trying to copy arcore example
+    //    trying to copy arcore example
     private boolean installRequested;
 
     // AR session
@@ -153,6 +162,30 @@ public class ImageCaptureActivity extends AppCompatActivity {
 
         context = getApplicationContext();
 
+        timerTextView = findViewById(R.id.timerTextView);
+        startButton = findViewById(R.id.startButton);
+        captureButton = findViewById(R.id.cameraButton);
+        captureButton.setEnabled(false);
+
+        // create a timer
+        timer = new CountDownTimer(15000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                timerTextView.setText(String.format("Please move the camera for %d seconds", millisUntilFinished / 1000));
+            }
+
+            @Override
+            public void onFinish() {
+                captureButton.setEnabled(true);
+                timerTextView.setVisibility(View.INVISIBLE);
+                Toast.makeText(
+                        ImageCaptureActivity.this,
+                        "You're ready to capture!",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        };
+
     }
 
     @Override
@@ -214,18 +247,18 @@ public class ImageCaptureActivity extends AppCompatActivity {
         try {
             arSession.resume();
         }
-            // To record a live camera session for later playback, call
-            // `session.startRecording(recordingConfig)` at anytime. To playback a previously recorded AR
-            // session instead of using the live camera feed, call
-            // `session.setPlaybackDatasetUri(Uri)` before calling `session.resume()`. To
-            // learn more about recording and playback, see:
-            // https://developers.google.com/ar/develop/java/recording-and-playback
-             catch(CameraNotAvailableException e){
-                Toast.makeText(this, "Camera open failed, please restart the app", Toast.LENGTH_LONG).show();
-                arSession = null;
-                return;
-            }
-            displayRotationUtil.registerDisplayListener();
+        // To record a live camera session for later playback, call
+        // `session.startRecording(recordingConfig)` at anytime. To playback a previously recorded AR
+        // session instead of using the live camera feed, call
+        // `session.setPlaybackDatasetUri(Uri)` before calling `session.resume()`. To
+        // learn more about recording and playback, see:
+        // https://developers.google.com/ar/develop/java/recording-and-playback
+        catch(CameraNotAvailableException e){
+            Toast.makeText(this, "Camera open failed, please restart the app", Toast.LENGTH_LONG).show();
+            arSession = null;
+            return;
+        }
+        displayRotationUtil.registerDisplayListener();
     }
 
     @Override
@@ -242,11 +275,12 @@ public class ImageCaptureActivity extends AppCompatActivity {
     // Android permission request callback.
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
         if (!CameraPermissionHelper.hasCameraPermission(this)) {
             Toast.makeText(
-                    getApplicationContext(),
-                    "Camera permission is needed to run this application",
-                    Toast.LENGTH_LONG)
+                            getApplicationContext(),
+                            "Camera permission is needed to run this application",
+                            Toast.LENGTH_LONG)
                     .show();
             if (!CameraPermissionHelper.shouldShowRequestPermissionRationale(this)) {
                 // Permission denied with checking "Do not ask again".
@@ -280,11 +314,19 @@ public class ImageCaptureActivity extends AppCompatActivity {
 //        }
 //    }
 
+    public void onStart(View view) {
+        startButton.setEnabled(false);
+        timerTextView.setVisibility(View.VISIBLE);
+        timer.start();
+    }
+
     public void onCaptureImage(View view) {
         Future<ImageProcessorInterface.ImageRaw> future = renderUtil.captureNextFrame();
+        captureButton.setEnabled(false);
         try {
             ImageProcessorInterface.ImageRaw raw = future.get();//replace
             imageModel.captureImage(this, raw);
+            startButton.setEnabled(true);
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.fragment_container_view, CaptureConfirmationFragment.class, null)

@@ -86,15 +86,33 @@
             android:text="-" />
 
         <Button
+            android:id="@+id/startButton"
+            android:layout_width="150dp"
+            android:layout_height="75dp"
+            android:onClick="onStart"
+            android:text="Start" />
+
+        <Button
             android:id="@+id/cameraButton"
             android:layout_width="150dp"
             android:layout_height="75dp"
             android:onClick="onCaptureImage"
-            android:text="Capture" />
+            android:text="Capture"
+            android:layout_below="@+id/startButton"/>
+
+        <TextView
+            android:id="@+id/timerTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/ToastStyle"
+            android:visibility="invisible"
+            android:text="Move the camera for 15 seconds"
+            android:layout_marginTop="20dp"
+            android:layout_centerHorizontal="true"/>
 
     </RelativeLayout>
+
     <androidx.fragment.app.FragmentContainerView
-        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/fragment_container_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

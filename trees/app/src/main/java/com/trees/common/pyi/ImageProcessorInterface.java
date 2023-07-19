@@ -27,6 +27,15 @@ public interface ImageProcessorInterface {
 
         /* Estimate trunk depth, as computed by algorithm */
         public float Depth;
+
+        // log info
+        public String LogInfo;
+
+        // rgb_disp_plot
+        public byte[] RGBDispPlot;
+
+        // center_depth_plot
+        public byte[] CenterDepthPlot;
     }
 
     class ImageRaw {

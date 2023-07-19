@@ -29,8 +29,14 @@ android {
                 install "numpy"
                 install "pillow"
                 install "scikit-image"
-                install "sklearn"
+                install "scikit-learn"
                 install "scipy"
+                install "grpcio"
+                install "tensorboard==2.9.0"
+                install "charset-normalizer==2.1.1"
+                install "pytorch-lightning==1.5.0"
+                install "urllib3==1.26.16"
+                install "segmentation-models-pytorch==0.3.2"
             }
             pyc {
                 src false

@@ -27,7 +27,7 @@ public class ImageViewModel extends ViewModel {
     private final MutableLiveData<ImageProcessorInterface.ImageResult> currentCapture;
 
     public ImageViewModel(SavedStateHandle savedStateHandle,
-            ImageProcessorInterface imageProcessor, ImageStoreInterface imageStore) {
+                          ImageProcessorInterface imageProcessor, ImageStoreInterface imageStore) {
         this.state = savedStateHandle;
         this.imageProcessor = imageProcessor;
         this.imageStore = imageStore;
@@ -87,6 +87,9 @@ public class ImageViewModel extends ViewModel {
             imageStore.saveToFileRGB(s, nextCapture, c.RGBImage);
             imageStore.saveToFileTOF(s, nextCapture, c.DepthImage);
             imageStore.saveToFileResults(s, nextCapture, c.Depth, c.Diameter);
+            imageStore.saveToFileLogInfo(s, nextCapture, c.LogInfo);
+            /*imageStore.saveToFileDispPlot(s, nextCapture, c.RGBDispPlot);
+            imageStore.saveToFileCenterDepthPlot(s, nextCapture, c.CenterDepthPlot);*/
         } catch (IOException e) {
             Log.e(LOG_TAG, "Unable to store the image: ", e);
         }

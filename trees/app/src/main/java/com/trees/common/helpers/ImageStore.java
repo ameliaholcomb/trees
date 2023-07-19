@@ -15,9 +15,9 @@ import java.util.Objects;
 public class ImageStore implements ImageStoreInterface {
     private static final String LOG_TAG = "AMELIA";
     private enum Filetype {
-            TOF,
-            JPEG,
-            MATRIX,
+        TOF,
+        JPEG,
+        MATRIX,
     }
     // path for storing data
     private String filepath =
@@ -125,6 +125,43 @@ public class ImageStore implements ImageStoreInterface {
         }
     }
 
+    // Log intermediate data
+    public void saveToFileLogInfo(Integer sampleNumber, Integer captureNumber, String logInfo) {
+        String filename = PREFIX + sampleNumber + "_" + captureNumber + "_log" + ".txt";
+        File outFile = getOrCreateFile(filename);
+        try (FileWriter writer = new FileWriter(outFile)) {
+            writer.write(logInfo);
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i(LOG_TAG, "Successfully wrote the file " + filename);
+        }
+    }
+
+    // save rgb_disp_plot
+    public void saveToFileDispPlot(Integer sampleNumber, Integer captureNumber, byte[] rgb_disp_plot) {
+        String filename = PREFIX + sampleNumber + "_" + captureNumber + "_rgb_disp_plot" + ".png";
+        File outFile = getOrCreateFile(filename);
+        try (FileOutputStream writer = new FileOutputStream(outFile)) {
+            writer.write(rgb_disp_plot);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i(LOG_TAG, "Successfully wrote the file " + filename);
+        }
+    }
+
+    // save center_depth_plot
+    public void saveToFileCenterDepthPlot(Integer sampleNumber, Integer captureNumber, byte[] center_depth_plot) {
+        String filename = PREFIX + sampleNumber + "_" + captureNumber + "_center_depth_plot" + ".png";
+        File outFile = getOrCreateFile(filename);
+        try (FileOutputStream writer = new FileOutputStream(outFile)) {
+            writer.write(center_depth_plot);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i(LOG_TAG, "Successfully wrote the file " + filename);
+        }
+    }
+
     public void saveToFileProjectionMatrix(
             Integer sampleNumber, Integer captureNumber,
             float[] projectionMatrix, float[] viewMatrix) throws IOException {
@@ -188,10 +225,10 @@ public class ImageStore implements ImageStoreInterface {
         }
 
         // Clean up the directory
-            for (File file : dir.listFiles()) {
+        for (File file : dir.listFiles()) {
             file.delete();
         }
-}
+    }
 
 
 }

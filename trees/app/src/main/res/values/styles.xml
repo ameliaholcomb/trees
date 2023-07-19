@@ -32,4 +32,10 @@
     <!-- All customizations that are NOT specific to a particular API-level can go here. -->
   </style>
 
+  <style name="ToastStyle" parent="android:Widget.TextView">
+    <item name="android:background">@drawable/toast_background</item>
+    <item name="android:textColor">#FFFFFF</item>
+    <item name="android:padding">8dp</item>
+  </style>
+
 </resources>

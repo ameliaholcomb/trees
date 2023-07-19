@@ -20,5 +20,11 @@ public interface ImageStoreInterface {
     void saveToFileResults(
             Integer sampleNumber, Integer nextCapture, float depth, float diameter);
 
+    void saveToFileLogInfo(Integer sampleNumber, Integer nextCapture, String logInfo);
+
+    void saveToFileDispPlot(Integer sampleNumber, Integer captureNumber, byte[] rgb_disp_plot);
+
+    void saveToFileCenterDepthPlot(Integer sampleNumber, Integer captureNumber, byte[] center_depth_plot);
+
     Integer[] getMaxSampleCaptureNums();
 }
